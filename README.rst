@@ -19,7 +19,7 @@ DeltaLand
 .. image:: https://img.shields.io/badge/code%20style-black-000000.svg
    :target: https://github.com/psf/black
 
-Multiplayer game bot for Delta Chat (`SimpleBot`_ plugin)
+MMO game bot for Delta Chat (`SimpleBot`_ plugin)
 
 Install
 -------
