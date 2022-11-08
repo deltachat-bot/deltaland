@@ -1,4 +1,4 @@
-DeltaLand
+Deltaland
 =========
 
 .. image:: https://img.shields.io/pypi/v/simplebot_deltaland.svg
