@@ -92,3 +92,13 @@ class TestPlugin:
 
         msg = mocker.get_one_reply("/quest_1")
         assert "❌" not in msg.text
+
+    def test_filter(self, mocker) -> None:
+        msg = mocker.get_one_reply("hi")
+        assert "❌" in msg.text
+
+        msg = mocker.get_one_reply("/start")
+        assert "❌" not in msg.text
+
+        msg = mocker.get_one_reply("hi")
+        assert "❌" not in msg.text
