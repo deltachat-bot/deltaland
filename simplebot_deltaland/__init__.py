@@ -55,11 +55,13 @@ def deltabot_start(bot: DeltaBot) -> None:
 
 
 @simplebot.filter
-def filter_messages() -> None:
+def filter_messages(message: Message, replies: Replies) -> None:
     """Deltaland bot.
 
     A game-bot that allows you to join the deltaland world and play with people all over the world.
     """
+    if not message.chat.is_multiuser():
+        me_cmd(message, replies)
 
 
 @simplebot.command
