@@ -2,6 +2,7 @@ class TestPlugin:
     def test_start(self, mocker) -> None:
         msg = mocker.get_one_reply("/start")
         assert "/me" in msg.text
+        assert msg.filename
 
         msg = mocker.get_one_reply("/start")
         assert "/me" not in msg.text
@@ -44,6 +45,7 @@ class TestPlugin:
 
         msg = mocker.get_one_reply("/tavern")
         assert "❌" not in msg.text
+        assert msg.filename
 
     def test_dice(self, mocker) -> None:
         msg = mocker.get_one_reply("/dice")
