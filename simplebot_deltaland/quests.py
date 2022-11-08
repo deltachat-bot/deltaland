@@ -38,7 +38,7 @@ quests = [
         "Stroll the town",
         "You decide to walk around in the town, looking for some easy errands that could get you a couple of coins",
         stamina=1,
-        duration=60 * 5,
+        duration=60 * 3,
         rewards=[
             Reward(
                 "You stepped on a pile of poop, you feel miserable",
