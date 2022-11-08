@@ -21,7 +21,7 @@ _TIME_DURATION_UNITS = (
 )
 
 
-def setdefault(bot: DeltaBot, key: str, value: str = None) -> str:
+def setdefault(bot: DeltaBot, key: str, value: Optional[str] = None) -> str:
     val = bot.get(key, scope=_scope)
     if val is None and value is not None:
         bot.set(key, value, scope=_scope)
