@@ -268,7 +268,7 @@ def quests_cmd(message: Message, replies: Replies) -> None:
     """Show available quests."""
     with session_scope() as session:
         player = get_player(session, message, replies)
-        if not player or not validate_resting(player, replies):
+        if not player:
             return
 
     text = ""
