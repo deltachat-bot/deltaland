@@ -170,8 +170,38 @@ def me_cmd(message: Message, replies: Replies) -> None:
 
             🗺️ Quests: /quests
             🍺 Tavern: /tavern
+            📊 Ranking: /top1
             """
         )
+
+
+@simplebot.command(hidden=True)
+def top1(message: Message, replies: Replies) -> None:
+    """Show the top richest adventurers."""
+    with session_scope() as session:
+        player = get_player(session, message, replies)
+        if not player:
+            return
+
+        is_on_top = False
+        text = ""
+        for i, player2 in enumerate(
+            get_players(session)
+            .filter(Player.gold > 0)
+            .order_by(Player.gold.desc())
+            .limit(15)
+        ):
+            text += f"#{i+1} {get_name(player2)} {player.gold}💰\n"
+            if player.id == player2.id:
+                is_on_top = True
+        if not is_on_top and text:
+            text += "\n...\n"
+            text += f"{get_name(player)} {player.gold}💰"
+        if text:
+            text = "**💰 The most wealthy adventurers**\n\n" + text
+        else:
+            text = "Everybody is poor :("
+        replies.add(text=text)
 
 
 @simplebot.command(hidden=True)
