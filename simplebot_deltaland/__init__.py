@@ -191,7 +191,7 @@ def top1(message: Message, replies: Replies) -> None:
             .order_by(Player.gold.desc())
             .limit(15)
         ):
-            text += f"#{i+1} {get_name(player2)} {player.gold}💰\n"
+            text += f"#{i+1} {get_name(player2)} {player2.gold}💰\n"
             if player.id == player2.id:
                 is_on_top = True
         if not is_on_top and text:
