@@ -63,7 +63,8 @@ def human_time_duration(seconds: int, rounded: bool = True) -> str:
 
 
 def get_name(player: Player) -> str:
-    return player.name if player.name else f"Player{player.id}"
+    name = player.name if player.name else "Stranger"
+    return f"{name} (🆔{player.id})"
 
 
 def get_player(session, message: Message, replies: Replies) -> Optional[Player]:
