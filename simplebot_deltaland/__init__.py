@@ -373,9 +373,7 @@ def quest_cmd(payload: str, message: Message, replies: Replies) -> None:
                 return
             now = time.time()
             player.state = quest.id
-            session.add(
-                Cooldown(id=quest.id, player_id=player.id, ends_at=now + quest.duration)
-            )
+            player.cooldowns.append(Cooldown(id=quest.id, ends_at=now + quest.duration))
             player.stamina -= quest.stamina
             if (
                 player.stamina < player.max_stamina
@@ -383,12 +381,8 @@ def quest_cmd(payload: str, message: Message, replies: Replies) -> None:
                 .filter_by(id=StateEnum.REST, player_id=player.id)
                 .first()
             ):
-                session.add(
-                    Cooldown(
-                        id=StateEnum.REST,
-                        player_id=player.id,
-                        ends_at=now + STAMINA_COOLDOWN,
-                    )
+                player.cooldowns.append(
+                    Cooldown(id=StateEnum.REST, ends_at=now + STAMINA_COOLDOWN)
                 )
             duration = human_time_duration(quest.duration, rounded=False)
             replies.add(text=f"You will be back in {duration}")

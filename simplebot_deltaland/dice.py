@@ -44,12 +44,8 @@ def play_dice(player: Player, session, bot: DeltaBot, replies: Replies) -> None:
                 f"If you won't find anyone, you'll leave in {human_time_duration(DICE_COOLDOWN)}"
             )
         )
-        session.add(
-            Cooldown(
-                id=StateEnum.PLAYING_DICE,
-                player_id=player.id,
-                ends_at=time.time() + DICE_COOLDOWN,
-            )
+        player.cooldowns.append(
+            Cooldown(id=StateEnum.PLAYING_DICE, ends_at=time.time() + DICE_COOLDOWN)
         )
 
 

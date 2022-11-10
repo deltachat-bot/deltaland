@@ -12,46 +12,36 @@ def init_game() -> None:
         if not session.query(Game).first():
             session.add(Game(version=1))
 
-        if not session.query(Player).filter_by(id=WORLD_ID).first():
-            session.add(Player(id=WORLD_ID, birthday=time.time()))
+        world = session.query(Player).filter_by(id=WORLD_ID).first()
+        if not world:
+            world = Player(id=WORLD_ID, birthday=time.time())
+            session.add(world)
 
         if (
             not session.query(Cooldown)
-            .filter_by(id=StateEnum.YEAR, player_id=WORLD_ID)
+            .filter_by(id=StateEnum.YEAR, player_id=world.id)
             .first()
         ):
-            session.add(
-                Cooldown(
-                    id=StateEnum.YEAR,
-                    player_id=WORLD_ID,
-                    ends_at=get_next_year_timestamp(),
-                )
+            world.cooldowns.append(
+                Cooldown(id=StateEnum.YEAR, ends_at=get_next_year_timestamp())
             )
 
         if (
             not session.query(Cooldown)
-            .filter_by(id=StateEnum.MONTH, player_id=WORLD_ID)
+            .filter_by(id=StateEnum.MONTH, player_id=world.id)
             .first()
         ):
-            session.add(
-                Cooldown(
-                    id=StateEnum.MONTH,
-                    player_id=WORLD_ID,
-                    ends_at=get_next_month_timestamp(),
-                )
+            world.cooldowns.append(
+                Cooldown(id=StateEnum.MONTH, ends_at=get_next_month_timestamp())
             )
 
         if (
             not session.query(Cooldown)
-            .filter_by(id=StateEnum.DAY, player_id=WORLD_ID)
+            .filter_by(id=StateEnum.DAY, player_id=world.id)
             .first()
         ):
-            session.add(
-                Cooldown(
-                    id=StateEnum.DAY,
-                    player_id=WORLD_ID,
-                    ends_at=get_next_day_timestamp(),
-                )
+            world.cooldowns.append(
+                Cooldown(id=StateEnum.DAY, ends_at=get_next_day_timestamp())
             )
 
 
