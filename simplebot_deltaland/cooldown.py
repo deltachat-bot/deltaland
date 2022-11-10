@@ -14,8 +14,12 @@ from .consts import (
     WORLD_ID,
     StateEnum,
 )
-from .game import get_next_cauldron_event, get_next_ranking_event
-from .orm import Cooldown, DiceRank, session_scope
+from .game import (
+    get_next_day_timestamp,
+    get_next_month_timestamp,
+    get_next_year_timestamp,
+)
+from .orm import CauldronRank, Cooldown, DiceRank, session_scope
 from .quests import get_quest
 from .util import get_image, get_name, get_players, send_message
 
@@ -47,7 +51,7 @@ def _check_cooldows(bot: DeltaBot) -> None:
 
 
 def _process_world_cooldown(bot: DeltaBot, cooldown: Cooldown, session) -> None:
-    if cooldown.id == StateEnum.CAULDRON:
+    if cooldown.id == StateEnum.DAY:
         winner = ""
         gift = get_players(session).filter_by(cauldron_coin=1).count()
         gift = max(MIN_CAULDRON_GIFT, min(MAX_CAULDRON_GIFT, gift))
@@ -64,10 +68,13 @@ def _process_world_cooldown(bot: DeltaBot, cooldown: Cooldown, session) -> None:
             if not winner:
                 winner = get_name(player)
                 player.gold += gift
-        cooldown.ends_at = get_next_cauldron_event()
-    if cooldown.id == StateEnum.RANKING:
+        cooldown.ends_at = get_next_day_timestamp()
+    elif cooldown.id == StateEnum.MONTH:
         session.query(DiceRank).delete()
-        cooldown.ends_at = get_next_ranking_event()
+        cooldown.ends_at = get_next_month_timestamp()
+    elif cooldown.id == StateEnum.YEAR:
+        session.query(CauldronRank).delete()
+        cooldown.ends_at = get_next_year_timestamp()
     else:
         bot.logger.warning(f"Unknown world state: {cooldown.id}")
         session.delete(cooldown)

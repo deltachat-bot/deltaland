@@ -53,6 +53,12 @@ class Player(Base):
         backref=backref("player", uselist=False),
         cascade="all, delete, delete-orphan",
     )
+    cauldron_rank = relationship(
+        "CauldronRank",
+        uselist=False,
+        backref=backref("player", uselist=False),
+        cascade="all, delete, delete-orphan",
+    )
     cooldowns = relationship(
         "Cooldown", backref="player", cascade="all, delete, delete-orphan"
     )
@@ -75,6 +81,11 @@ class Cooldown(Base):
 
 
 class DiceRank(Base):
+    id = Column(Integer, ForeignKey("player.id"), primary_key=True)
+    gold = Column(Integer, nullable=False)
+
+
+class CauldronRank(Base):
     id = Column(Integer, ForeignKey("player.id"), primary_key=True)
     gold = Column(Integer, nullable=False)
 

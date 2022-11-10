@@ -12,8 +12,8 @@ from simplebot.bot import Replies
 from .consts import DICE_FEE, STAMINA_COOLDOWN, StateEnum
 from .cooldown import cooldown_loop
 from .dice import play_dice
-from .game import get_cauldron_cooldown, init_game
-from .orm import Cooldown, DiceRank, Player, init, session_scope
+from .game import get_next_day_cooldown, init_game
+from .orm import CauldronRank, Cooldown, DiceRank, Player, init, session_scope
 from .quests import get_quest, quests
 from .util import (
     get_image,
@@ -176,7 +176,8 @@ def top(message: Message, replies: Replies) -> None:
         rankings = [
             "**📊 Ranking**",
             "**Midas's Disciples**\n💰 Top gold collectors\n/top1",
-            "**Luckiest Gamblers**\n🎲 Most wins in dice this month\n/top2",
+            "**Cauldron Worshipers**\n🍀 Most gold received from the magic cauldron\n/top2",
+            "**Luckiest Gamblers**\n🎲 Most wins in dice\n/top3",
         ]
         replies.add(text="\n\n".join(rankings))
 
@@ -215,7 +216,42 @@ def top1(message: Message, replies: Replies) -> None:
 
 @simplebot.command(hidden=True)
 def top2(message: Message, replies: Replies) -> None:
-    """Top dice gamblers of the month."""
+    """Most gold received from the magic cauldron."""
+    with session_scope() as session:
+        player = get_player(session, message, replies)
+        if not player:
+            return
+
+        is_on_top = False
+        text = ""
+        for i, rank in enumerate(
+            session.query(CauldronRank)
+            .filter(CauldronRank.gold > 0)
+            .order_by(CauldronRank.gold.desc())
+            .limit(15)
+        ):
+            if player.id == rank.id:
+                is_on_top = True
+                marker = "#️⃣"
+            else:
+                marker = "#"
+            text += f"{marker}{i+1} {get_name(rank.player)} {rank.gold}💰\n"
+        if not is_on_top and text:
+            text += "\n...\n"
+            gold = player.cauldron_rank.gold if player.cauldron_rank else 0
+            text += f"{get_name(player)} {gold}💰"
+        if text:
+            text = (
+                "**🍀 Most gold received from the magic cauldron this year**\n\n" + text
+            )
+        else:
+            text = "Nobody has tossed a coin in the cauldron this year, be the first!"
+        replies.add(text=text)
+
+
+@simplebot.command(hidden=True)
+def top3(message: Message, replies: Replies) -> None:
+    """Most wins in dice this month."""
     with session_scope() as session:
         player = get_player(session, message, replies)
         if not player:
@@ -242,7 +278,7 @@ def top2(message: Message, replies: Replies) -> None:
         if text:
             text = "**🎲 Most wins in dice this month**\n\n" + text
         else:
-            text = "No one has played dice yet this month :("
+            text = "No one has played dice this month, be the first!"
         replies.add(text=text)
 
 
@@ -292,7 +328,7 @@ def cauldron(message: Message, replies: Replies) -> None:
         if not player or not validate_resting(player, replies):
             return
 
-        cooldown = get_cauldron_cooldown(session)
+        cooldown = get_next_day_cooldown(session)
         if player.cauldron_coin:
             replies.add(
                 text=f"You already tossed a coin today, come again tomorrow. (⏰{cooldown})"

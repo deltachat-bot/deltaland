@@ -19,5 +19,6 @@ class StateEnum(IntEnum):
     PLAYING_DICE = -1
 
     # World state
-    CAULDRON = -100
-    RANKING = -101
+    DAY = -100
+    MONTH = -101
+    YEAR = -102
