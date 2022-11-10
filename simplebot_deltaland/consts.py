@@ -20,3 +20,4 @@ class StateEnum(IntEnum):
 
     # World state
     CAULDRON = -100
+    RANKING = -101

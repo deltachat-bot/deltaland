@@ -7,7 +7,7 @@ from typing import Tuple
 from simplebot.bot import DeltaBot, Replies
 
 from .consts import DICE_COOLDOWN, DICE_FEE, StateEnum
-from .orm import Cooldown, Player
+from .orm import Cooldown, DiceRank, Player
 from .util import get_name, human_time_duration, send_message
 
 _DICES = {
@@ -60,6 +60,13 @@ def _play_dice(player1: Player, player2: Player, bot) -> None:
     if sum(roll1) < sum(roll2):
         player1, player2 = player2, player1
         roll1, roll2 = roll2, roll1
+
+    if not player1.dice_rank:
+        player1.dice_rank = DiceRank(id=player1.id, gold=0)
+    if not player2.dice_rank:
+        player2.dice_rank = DiceRank(id=player2.id, gold=0)
+    player1.dice_rank.gold += DICE_FEE
+    player2.dice_rank.gold -= DICE_FEE
 
     earned_gold = 2 * DICE_FEE
     player1.gold += earned_gold

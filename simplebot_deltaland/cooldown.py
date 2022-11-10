@@ -6,7 +6,6 @@ import time
 from simplebot import DeltaBot
 from sqlalchemy import func
 
-from .cauldron import get_next_cauldron_event
 from .consts import (
     DICE_FEE,
     MAX_CAULDRON_GIFT,
@@ -15,7 +14,8 @@ from .consts import (
     WORLD_ID,
     StateEnum,
 )
-from .orm import Cooldown, session_scope
+from .game import get_next_cauldron_event, get_next_ranking_event
+from .orm import Cooldown, DiceRank, session_scope
 from .quests import get_quest
 from .util import get_image, get_name, get_players, send_message
 
@@ -65,6 +65,9 @@ def _process_world_cooldown(bot: DeltaBot, cooldown: Cooldown, session) -> None:
                 winner = get_name(player)
                 player.gold += gift
         cooldown.ends_at = get_next_cauldron_event()
+    if cooldown.id == StateEnum.RANKING:
+        session.query(DiceRank).delete()
+        cooldown.ends_at = get_next_ranking_event()
     else:
         bot.logger.warning(f"Unknown world state: {cooldown.id}")
         session.delete(cooldown)

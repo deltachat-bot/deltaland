@@ -9,11 +9,11 @@ from deltachat import Message
 from simplebot import DeltaBot
 from simplebot.bot import Replies
 
-from .cauldron import get_cauldron_cooldown, get_next_cauldron_event
-from .consts import DICE_FEE, STAMINA_COOLDOWN, WORLD_ID, StateEnum
+from .consts import DICE_FEE, STAMINA_COOLDOWN, StateEnum
 from .cooldown import cooldown_loop
 from .dice import play_dice
-from .orm import Cooldown, Game, Player, init, session_scope
+from .game import get_cauldron_cooldown, init_game
+from .orm import Cooldown, DiceRank, Player, init, session_scope
 from .quests import get_quest, quests
 from .util import (
     get_image,
@@ -40,17 +40,7 @@ def deltabot_start(bot: DeltaBot) -> None:
         os.makedirs(path)
     path = os.path.join(path, "sqlite.db")
     init(f"sqlite:///{path}")
-    with session_scope() as session:
-        if not session.query(Game).first():
-            session.add(Game(version=1))
-            session.add(Player(id=WORLD_ID, birthday=time.time()))
-            session.add(
-                Cooldown(
-                    id=StateEnum.CAULDRON,
-                    player_id=WORLD_ID,
-                    ends_at=get_next_cauldron_event(),
-                )
-            )
+    init_game()
     Thread(target=cooldown_loop, args=(bot,), daemon=True).start()
 
 
@@ -170,14 +160,30 @@ def me_cmd(message: Message, replies: Replies) -> None:
 
             🗺️ Quests: /quests
             🍺 Tavern: /tavern
-            📊 Ranking: /top1
+            📊 Ranking: /top
             """
         )
 
 
 @simplebot.command(hidden=True)
+def top(message: Message, replies: Replies) -> None:
+    """Show the list of scoreboards."""
+    with session_scope() as session:
+        player = get_player(session, message, replies)
+        if not player:
+            return
+
+        rankings = [
+            "**📊 Ranking**",
+            "**Midas's Disciples**\n💰 Top gold collectors\n/top1",
+            "**Luckiest Gamblers**\n🎲 Most wins in dice this month\n/top2",
+        ]
+        replies.add(text="\n\n".join(rankings))
+
+
+@simplebot.command(hidden=True)
 def top1(message: Message, replies: Replies) -> None:
-    """Show the top richest adventurers."""
+    """Top gold collectors."""
     with session_scope() as session:
         player = get_player(session, message, replies)
         if not player:
@@ -191,16 +197,52 @@ def top1(message: Message, replies: Replies) -> None:
             .order_by(Player.gold.desc())
             .limit(15)
         ):
-            text += f"#{i+1} {get_name(player2)} {player2.gold}💰\n"
             if player.id == player2.id:
                 is_on_top = True
+                marker = "#️⃣"
+            else:
+                marker = "#"
+            text += f"{marker}{i+1} {get_name(player2)} {player2.gold}💰\n"
         if not is_on_top and text:
             text += "\n...\n"
             text += f"{get_name(player)} {player.gold}💰"
         if text:
-            text = "**💰 The most wealthy adventurers**\n\n" + text
+            text = "**💰 Top gold collectors**\n\n" + text
         else:
             text = "Everybody is poor :("
+        replies.add(text=text)
+
+
+@simplebot.command(hidden=True)
+def top2(message: Message, replies: Replies) -> None:
+    """Top dice gamblers of the month."""
+    with session_scope() as session:
+        player = get_player(session, message, replies)
+        if not player:
+            return
+
+        is_on_top = False
+        text = ""
+        for i, rank in enumerate(
+            session.query(DiceRank)
+            .filter(DiceRank.gold > 0)
+            .order_by(DiceRank.gold.desc())
+            .limit(15)
+        ):
+            if player.id == rank.id:
+                is_on_top = True
+                marker = "#️⃣"
+            else:
+                marker = "#"
+            text += f"{marker}{i+1} {get_name(rank.player)} {rank.gold}💰\n"
+        if not is_on_top and text:
+            text += "\n...\n"
+            gold = player.dice_rank.gold if player.dice_rank else 0
+            text += f"{get_name(player)} {gold}💰"
+        if text:
+            text = "**🎲 Most wins in dice this month**\n\n" + text
+        else:
+            text = "No one has played dice yet this month :("
         replies.add(text=text)
 
 

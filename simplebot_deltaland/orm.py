@@ -5,7 +5,7 @@ from threading import Lock
 
 from sqlalchemy import Column, ForeignKey, Integer, String, create_engine
 from sqlalchemy.ext.declarative import declarative_base, declared_attr
-from sqlalchemy.orm import relationship, sessionmaker
+from sqlalchemy.orm import backref, relationship, sessionmaker
 
 from .consts import MAX_STAMINA, STARTING_GOLD, StateEnum
 
@@ -47,6 +47,12 @@ class Player(Base):
     gold = Column(Integer)
     state = Column(Integer)
     cauldron_coin = Column(Integer)
+    dice_rank = relationship(
+        "DiceRank",
+        uselist=False,
+        backref=backref("player", uselist=False),
+        cascade="all, delete, delete-orphan",
+    )
     cooldowns = relationship(
         "Cooldown", backref="player", cascade="all, delete, delete-orphan"
     )
@@ -66,6 +72,11 @@ class Cooldown(Base):
     id = Column(Integer, primary_key=True)
     player_id = Column(Integer, ForeignKey("player.id"), primary_key=True)
     ends_at = Column(Integer, nullable=False)
+
+
+class DiceRank(Base):
+    id = Column(Integer, ForeignKey("player.id"), primary_key=True)
+    gold = Column(Integer, nullable=False)
 
 
 @contextmanager
