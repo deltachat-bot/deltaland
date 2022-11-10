@@ -31,6 +31,8 @@ def dices2str(dices: Tuple[int, ...]) -> str:
 def play_dice(player: Player, session, bot: DeltaBot, replies: Replies) -> None:
     player.gold -= DICE_FEE
     player.state = StateEnum.PLAYING_DICE
+    if not player.dice_rank:
+        player.dice_rank = DiceRank(id=player.id, gold=0)
     cooldown = session.query(Cooldown).filter_by(id=StateEnum.PLAYING_DICE).first()
     if cooldown:
         _play_dice(player, cooldown.player, bot)
@@ -61,10 +63,6 @@ def _play_dice(player1: Player, player2: Player, bot) -> None:
         player1, player2 = player2, player1
         roll1, roll2 = roll2, roll1
 
-    if not player1.dice_rank:
-        player1.dice_rank = DiceRank(id=player1.id, gold=0)
-    if not player2.dice_rank:
-        player2.dice_rank = DiceRank(id=player2.id, gold=0)
     player1.dice_rank.gold += DICE_FEE
     player2.dice_rank.gold -= DICE_FEE
 
