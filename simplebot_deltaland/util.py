@@ -62,11 +62,6 @@ def human_time_duration(seconds: int, rounded: bool = True) -> str:
     return ", ".join(parts)
 
 
-def get_name(player: Player, add_id=False) -> str:
-    name = player.name if player.name else "Stranger"
-    return f"{name} (🆔{player.id})" if add_id else name
-
-
 def get_player(session, message: Message, replies: Replies) -> Optional[Player]:
     """Get the player corresponding to a message.
 

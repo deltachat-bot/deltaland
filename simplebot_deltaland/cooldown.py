@@ -20,7 +20,7 @@ from .game import (
 )
 from .orm import CauldronRank, Cooldown, DiceRank, session_scope
 from .quests import get_quest
-from .util import get_image, get_name, get_players, send_message
+from .util import get_image, get_players, send_message
 
 
 def cooldown_loop(bot: DeltaBot) -> None:
@@ -65,7 +65,7 @@ def _process_world_cooldown(bot: DeltaBot, cooldown: Cooldown, session) -> None:
                 filename=None if winner else get_image("cauldron"),
             )
             if not winner:
-                winner = get_name(player)
+                winner = player.get_name()
                 player.gold += gift
         cooldown.ends_at = get_next_day_timestamp()
     elif cooldown.id == StateEnum.MONTH:

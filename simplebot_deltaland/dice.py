@@ -8,7 +8,7 @@ from simplebot.bot import DeltaBot, Replies
 
 from .consts import DICE_COOLDOWN, DICE_FEE, StateEnum
 from .orm import Cooldown, DiceRank, Player
-from .util import get_name, human_time_duration, send_message
+from .util import human_time_duration, send_message
 
 _DICES = {
     1: "⚀",
@@ -66,7 +66,7 @@ def _play_dice(player1: Player, player2: Player, bot) -> None:
     player1.gold += earned_gold
     player1.state = player2.state = StateEnum.REST
 
-    name1, name2 = get_name(player1), get_name(player2)
+    name1, name2 = player1.get_name(), player2.get_name()
     dices1, dices2 = dices2str(roll1), dices2str(roll2)
     text = "\n".join(
         [

@@ -1,13 +1,18 @@
 """database"""
 
+import time
 from contextlib import contextmanager
 from threading import Lock
+from typing import TYPE_CHECKING
 
 from sqlalchemy import Column, ForeignKey, Integer, String, create_engine
 from sqlalchemy.ext.declarative import declarative_base, declared_attr
 from sqlalchemy.orm import backref, relationship, sessionmaker
 
-from .consts import MAX_STAMINA, STARTING_GOLD, StateEnum
+from .consts import MAX_STAMINA, STAMINA_COOLDOWN, STARTING_GOLD, StateEnum
+
+if TYPE_CHECKING:
+    from .quests import Quest
 
 
 class Base:
@@ -72,6 +77,31 @@ class Player(Base):
         kwargs.setdefault("state", StateEnum.REST)
         kwargs.setdefault("cauldron_coin", 0)
         super().__init__(**kwargs)
+
+    def get_name(self, show_id: bool = False) -> str:
+        name = self.name or "Stranger"
+        return f"{name} (🆔{self.id})" if show_id else name
+
+    def reduce_stamina(self, stamina: int) -> None:
+        self.stamina -= stamina
+        restoring = False
+        for cooldwn in self.cooldowns:
+            if cooldwn.id == StateEnum.REST:
+                restoring = True
+                break
+        if self.stamina < self.max_stamina and not restoring:
+            self.cooldowns.append(
+                Cooldown(  # noqa
+                    id=StateEnum.REST, ends_at=time.time() + STAMINA_COOLDOWN
+                )
+            )
+
+    def start_quest(self, quest: "Quest") -> None:
+        self.state = quest.id
+        self.cooldowns.append(
+            Cooldown(id=quest.id, ends_at=time.time() + quest.duration)  # noqa
+        )
+        self.reduce_stamina(quest.stamina)
 
 
 class Cooldown(Base):

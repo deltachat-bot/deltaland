@@ -1,9 +1,10 @@
 """Game quests"""
 
 import random
-from typing import List, Optional
+from typing import TYPE_CHECKING, List, Optional
 
-from .orm import Player
+if TYPE_CHECKING:
+    from .orm import Player
 
 
 class Reward:
@@ -34,7 +35,7 @@ class Quest:
         self.duration = duration
         self.rewards = rewards
 
-    def get_reward(self, player: Player) -> Reward:
+    def get_reward(self, player: "Player") -> Reward:  # noqa
         return random.choice(self.rewards)
 
 

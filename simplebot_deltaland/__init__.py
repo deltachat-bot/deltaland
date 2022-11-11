@@ -6,10 +6,9 @@ from threading import Thread
 
 import simplebot
 from deltachat import Message
-from simplebot import DeltaBot
-from simplebot.bot import Replies
+from simplebot.bot import DeltaBot, Replies
 
-from .consts import DICE_FEE, STAMINA_COOLDOWN, StateEnum
+from .consts import DICE_FEE, StateEnum
 from .cooldown import cooldown_loop
 from .dice import play_dice
 from .game import get_next_day_cooldown, init_game
@@ -17,7 +16,6 @@ from .orm import CauldronRank, Cooldown, DiceRank, Player, init, session_scope
 from .quests import get_quest, quests
 from .util import (
     get_image,
-    get_name,
     get_player,
     get_players,
     human_time_duration,
@@ -115,7 +113,7 @@ def me_cmd(message: Message, replies: Replies) -> None:
             return
 
         now = time.time()
-        name = get_name(player)
+        name = player.get_name()
         if not player.name:
             name += " (set name with /name)"
         if player.state == StateEnum.REST:
@@ -203,10 +201,10 @@ def top1(message: Message, replies: Replies) -> None:
                 marker = "#️⃣"
             else:
                 marker = "#"
-            text += f"{marker}{i+1} {get_name(player2)} {player2.gold}💰\n"
+            text += f"{marker}{i+1} {player2.get_name()} {player2.gold}💰\n"
         if not is_on_top and text:
             text += "\n...\n"
-            text += f"{get_name(player)} {player.gold}💰"
+            text += f"{player.get_name()} {player.gold}💰"
         if text:
             text = "**💰 Top gold collectors**\n\n" + text
         else:
@@ -235,11 +233,11 @@ def top2(message: Message, replies: Replies) -> None:
                 marker = "#️⃣"
             else:
                 marker = "#"
-            text += f"{marker}{i+1} {get_name(rank.player)} {rank.gold}💰\n"
+            text += f"{marker}{i+1} {rank.player.get_name()} {rank.gold}💰\n"
         if not is_on_top and text:
             text += "\n...\n"
             gold = player.cauldron_rank.gold if player.cauldron_rank else 0
-            text += f"{get_name(player)} {gold}💰"
+            text += f"{player.get_name()} {gold}💰"
         if text:
             text = (
                 "**🍀 Most gold received from the magic cauldron this year**\n\n" + text
@@ -270,11 +268,11 @@ def top3(message: Message, replies: Replies) -> None:
                 marker = "#️⃣"
             else:
                 marker = "#"
-            text += f"{marker}{i+1} {get_name(rank.player)} {rank.gold}💰\n"
+            text += f"{marker}{i+1} {rank.player.get_name()} {rank.gold}💰\n"
         if not is_on_top and text:
             text += "\n...\n"
             gold = player.dice_rank.gold if player.dice_rank else 0
-            text += f"{get_name(player)} {gold}💰"
+            text += f"{player.get_name()} {gold}💰"
         if text:
             text = "**🎲 Most wins in dice this month**\n\n" + text
         else:
@@ -371,19 +369,7 @@ def quest_cmd(payload: str, message: Message, replies: Replies) -> None:
             if player.stamina < quest.stamina:
                 replies.add(text="Not enough stamina. Come back after you take a rest.")
                 return
-            now = time.time()
-            player.state = quest.id
-            player.cooldowns.append(Cooldown(id=quest.id, ends_at=now + quest.duration))
-            player.stamina -= quest.stamina
-            if (
-                player.stamina < player.max_stamina
-                and not session.query(Cooldown)
-                .filter_by(id=StateEnum.REST, player_id=player.id)
-                .first()
-            ):
-                player.cooldowns.append(
-                    Cooldown(id=StateEnum.REST, ends_at=now + STAMINA_COOLDOWN)
-                )
+            player.start_quest(quest)
             duration = human_time_duration(quest.duration, rounded=False)
             replies.add(text=f"{quest.parting_msg}. You will be back in {duration}")
         else:
