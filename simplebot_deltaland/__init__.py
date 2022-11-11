@@ -226,10 +226,7 @@ def top2(message: "Message", replies: "Replies") -> None:
         is_on_top = False
         text = ""
         for i, rank in enumerate(
-            session.query(CauldronRank)
-            .filter(CauldronRank.gold > 0)
-            .order_by(CauldronRank.gold.desc())
-            .limit(15)
+            session.query(CauldronRank).order_by(CauldronRank.gold.desc()).limit(15)
         ):
             if player.id == rank.id:
                 is_on_top = True

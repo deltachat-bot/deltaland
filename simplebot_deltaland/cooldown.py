@@ -67,6 +67,9 @@ def _process_world_cooldown(bot: DeltaBot, cooldown: Cooldown, session) -> None:
             if not winner:
                 winner = player.get_name()
                 player.gold += gift
+                if not player.cauldron_rank:
+                    player.cauldron_rank = CauldronRank(gold=0)
+                player.cauldron_rank += gift
         cooldown.ends_at = get_next_day_timestamp()
     elif cooldown.id == StateEnum.MONTH:
         session.query(DiceRank).delete()
