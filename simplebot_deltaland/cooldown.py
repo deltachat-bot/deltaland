@@ -18,9 +18,9 @@ from .game import (
     get_next_month_timestamp,
     get_next_year_timestamp,
 )
-from .orm import CauldronRank, Cooldown, DiceRank, session_scope
+from .orm import CauldronCoin, CauldronRank, Cooldown, DiceRank, session_scope
 from .quests import get_quest
-from .util import get_image, get_players, send_message
+from .util import get_image, send_message
 
 
 def cooldown_loop(bot: DeltaBot) -> None:
@@ -52,12 +52,11 @@ def _check_cooldows(bot: DeltaBot) -> None:
 def _process_world_cooldown(bot: DeltaBot, cooldown: Cooldown, session) -> None:
     if cooldown.id == StateEnum.DAY:
         winner = ""
-        gift = get_players(session).filter_by(cauldron_coin=1).count()
+        gift = session.query(CauldronCoin).count()
         gift = max(MIN_CAULDRON_GIFT, min(MAX_CAULDRON_GIFT, gift))
-        for player in (
-            get_players(session).filter_by(cauldron_coin=1).order_by(func.random())
-        ):
-            player.cauldron_coin = 0
+        for coin in session.query(CauldronCoin).order_by(func.random()):
+            player = coin.player
+            session.delete(coin)
             send_message(
                 bot,
                 player.id,

@@ -1,6 +1,5 @@
 """hooks, filters and commands definitions."""
 
-import os
 import time
 from threading import Thread
 from typing import TYPE_CHECKING
@@ -11,9 +10,19 @@ from .consts import DICE_FEE, StateEnum
 from .cooldown import cooldown_loop
 from .dice import play_dice
 from .game import get_next_day_cooldown, init_game
-from .orm import CauldronRank, Cooldown, DiceRank, Player, init, session_scope
+from .migrations import run_migrations
+from .orm import (
+    CauldronCoin,
+    CauldronRank,
+    Cooldown,
+    DiceRank,
+    Player,
+    init,
+    session_scope,
+)
 from .quests import get_quest, quests
 from .util import (
+    get_database_path,
     get_image,
     get_player,
     get_players,
@@ -36,11 +45,8 @@ def deltabot_init(bot: "DeltaBot") -> None:
 
 @simplebot.hookimpl
 def deltabot_start(bot: "DeltaBot") -> None:
-    path = os.path.join(os.path.dirname(bot.account.db_path), __name__)
-    if not os.path.exists(path):
-        os.makedirs(path)
-    path = os.path.join(path, "sqlite.db")
-    init(f"sqlite:///{path}")
+    run_migrations(bot)
+    init(f"sqlite:///{get_database_path(bot)}")
     init_game()
     Thread(target=cooldown_loop, args=(bot,), daemon=True).start()
 
@@ -329,11 +335,11 @@ def cauldron(message: "Message", replies: "Replies") -> None:
         cooldown = get_next_day_cooldown(session)
         if player.cauldron_coin:
             replies.add(
-                text=f"You already tossed a coin today, come again tomorrow. (⏰{cooldown})"
+                text=f"You already tossed a coin, come again later. (⏰{cooldown})"
             )
         elif validate_gold(player, 1, replies):
             player.gold -= 1
-            player.cauldron_coin = 1
+            player.cauldron_coin = CauldronCoin()
             replies.add(
                 text=f"You tossed a coin into the cauldron, it disappeared in the pitch black inside of the cauldron without making a sound.\n\n(⏰ Gift in {cooldown})"
             )

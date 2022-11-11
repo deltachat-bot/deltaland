@@ -2,6 +2,7 @@
 
 from enum import IntEnum
 
+DATABASE_VERSION = 2
 WORLD_ID = 0
 MAX_STAMINA = 5
 STARTING_GOLD = 0

@@ -51,7 +51,12 @@ class Player(Base):
     max_stamina = Column(Integer)
     gold = Column(Integer)
     state = Column(Integer)
-    cauldron_coin = Column(Integer)
+    cauldron_coin = relationship(
+        "CauldronCoin",
+        uselist=False,
+        backref=backref("player", uselist=False),
+        cascade="all, delete, delete-orphan",
+    )
     dice_rank = relationship(
         "DiceRank",
         uselist=False,
@@ -71,11 +76,12 @@ class Player(Base):
     def __init__(self, **kwargs):
         kwargs.setdefault("level", 1)
         kwargs.setdefault("exp", 0)
+        kwargs.setdefault("attack", 1)
+        kwargs.setdefault("defense", 1)
         kwargs.setdefault("stamina", MAX_STAMINA)
         kwargs.setdefault("max_stamina", MAX_STAMINA)
         kwargs.setdefault("gold", STARTING_GOLD)
         kwargs.setdefault("state", StateEnum.REST)
-        kwargs.setdefault("cauldron_coin", 0)
         super().__init__(**kwargs)
 
     def get_name(self, show_id: bool = False) -> str:
@@ -118,6 +124,10 @@ class DiceRank(Base):
 class CauldronRank(Base):
     id = Column(Integer, ForeignKey("player.id"), primary_key=True)
     gold = Column(Integer, nullable=False)
+
+
+class CauldronCoin(Base):
+    id = Column(Integer, ForeignKey("player.id"), primary_key=True)
 
 
 @contextmanager

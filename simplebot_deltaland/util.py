@@ -97,3 +97,10 @@ def validate_gold(player: Player, required_gold: int, replies: Replies) -> bool:
 
 def get_image(name: str) -> str:
     return os.path.join(_images_dir, f"{name}.webp")
+
+
+def get_database_path(bot: DeltaBot) -> str:
+    path = os.path.join(os.path.dirname(bot.account.db_path), _scope)
+    if not os.path.exists(path):
+        os.makedirs(path)
+    return os.path.join(path, "sqlite.db")
