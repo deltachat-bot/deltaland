@@ -1,6 +1,5 @@
 """Cooldown loop logic"""
 
-import random
 import time
 
 from simplebot import DeltaBot
@@ -92,7 +91,7 @@ def _process_player_cooldown(bot: DeltaBot, cooldown: Cooldown, session) -> None
                 text="Stamina restored. You are ready for more adventures!",
             )
         else:
-            cooldown.ends_at = time.time() + STAMINA_COOLDOWN
+            cooldown.ends_at = cooldown.ends_at + STAMINA_COOLDOWN
     elif cooldown.id == StateEnum.PLAYING_DICE:
         player = cooldown.player
         session.delete(cooldown)
@@ -107,10 +106,10 @@ def _process_quest_cooldown(bot: DeltaBot, cooldown: Cooldown, session) -> None:
     quest = get_quest(cooldown.id)
     if quest:
         player = cooldown.player
-        reward = random.choice(quest.rewards)
+        reward = quest.get_reward(player)
         text = reward.description
         if reward.gold:
-            text += f"\n\n🎁 Reward: {reward.gold:+}💰"
+            text += f"\n\nYou received: {reward.gold:+}💰"
             player.gold += reward.gold
         player.state = StateEnum.REST
         send_message(bot, cooldown.player_id, text=text)

@@ -131,7 +131,7 @@ def me_cmd(message: Message, replies: Replies) -> None:
                     .first()
                 )
                 quest_cooldown = human_time_duration(cooldown.ends_at - now)
-                state = f"🗺️ Quest: {quest.name}. Back in {quest_cooldown}"
+                state = f"{quest.status_msg}. Back in {quest_cooldown}"
             else:
                 state = f"UNKNOWN ({player.state})"
         cooldown = (
@@ -385,6 +385,6 @@ def quest_cmd(payload: str, message: Message, replies: Replies) -> None:
                     Cooldown(id=StateEnum.REST, ends_at=now + STAMINA_COOLDOWN)
                 )
             duration = human_time_duration(quest.duration, rounded=False)
-            replies.add(text=f"You will be back in {duration}")
+            replies.add(text=f"{quest.parting_msg}. You will be back in {duration}")
         else:
             replies.add(text="❌ Unknown quest")
