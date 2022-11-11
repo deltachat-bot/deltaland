@@ -32,7 +32,7 @@ def play_dice(player: Player, session, bot: DeltaBot, replies: Replies) -> None:
     player.gold -= DICE_FEE
     player.state = StateEnum.PLAYING_DICE
     if not player.dice_rank:
-        player.dice_rank = DiceRank(id=player.id, gold=0)
+        player.dice_rank = DiceRank(gold=0)
     cooldown = session.query(Cooldown).filter_by(id=StateEnum.PLAYING_DICE).first()
     if cooldown:
         _play_dice(player, cooldown.player, bot)
