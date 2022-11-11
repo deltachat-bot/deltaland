@@ -210,7 +210,7 @@ def top1(message: Message, replies: Replies) -> None:
         if text:
             text = "**💰 Top gold collectors**\n\n" + text
         else:
-            text = "Everybody is poor :("
+            text = "Nobody has gold :("
         replies.add(text=text)
 
 
@@ -245,7 +245,7 @@ def top2(message: Message, replies: Replies) -> None:
                 "**🍀 Most gold received from the magic cauldron this year**\n\n" + text
             )
         else:
-            text = "Nobody has tossed a coin in the cauldron this year, be the first!"
+            text = "Nobody has received gold from the magic cauldron this year"
         replies.add(text=text)
 
 
@@ -278,7 +278,7 @@ def top3(message: Message, replies: Replies) -> None:
         if text:
             text = "**🎲 Most wins in dice this month**\n\n" + text
         else:
-            text = "No one has played dice this month, be the first!"
+            text = "Nobody has earned gold playing dice this month, be the first!"
         replies.add(text=text)
 
 
