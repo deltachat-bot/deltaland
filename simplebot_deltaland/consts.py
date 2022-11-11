@@ -22,3 +22,4 @@ class StateEnum(IntEnum):
     DAY = -100
     MONTH = -101
     YEAR = -102
+    BATTLE = -103

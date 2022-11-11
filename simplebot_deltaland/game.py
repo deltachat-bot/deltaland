@@ -44,6 +44,20 @@ def init_game() -> None:
                 Cooldown(id=StateEnum.DAY, ends_at=get_next_day_timestamp())
             )
 
+        if (
+            not session.query(Cooldown)
+            .filter_by(id=StateEnum.BATTLE, player_id=world.id)
+            .first()
+        ):
+            last_battle = int(
+                datetime.today().replace(minute=0, second=0, microsecond=0).timestamp()
+            )
+            world.cooldowns.append(
+                Cooldown(
+                    id=StateEnum.BATTLE, ends_at=get_next_battle_timestamp(last_battle)
+                )
+            )
+
 
 def get_next_year_timestamp() -> int:
     return int(
@@ -67,6 +81,10 @@ def get_next_day_timestamp() -> int:
         .replace(hour=0, minute=0, second=0, microsecond=0)
         .timestamp()
     )
+
+
+def get_next_battle_timestamp(last_battle: int) -> int:
+    return int(last_battle + 60 * 60 * 8)
 
 
 def get_next_day_cooldown(session) -> str:
