@@ -3,10 +3,9 @@
 import os
 import time
 from threading import Thread
+from typing import TYPE_CHECKING
 
 import simplebot
-from deltachat import Message
-from simplebot.bot import DeltaBot, Replies
 
 from .consts import DICE_FEE, StateEnum
 from .cooldown import cooldown_loop
@@ -25,14 +24,18 @@ from .util import (
     validate_resting,
 )
 
+if TYPE_CHECKING:
+    from deltachat import Message
+    from simplebot.bot import DeltaBot, Replies
+
 
 @simplebot.hookimpl
-def deltabot_init(bot: DeltaBot) -> None:
+def deltabot_init(bot: "DeltaBot") -> None:
     setdefault(bot, "max_players", "0")
 
 
 @simplebot.hookimpl
-def deltabot_start(bot: DeltaBot) -> None:
+def deltabot_start(bot: "DeltaBot") -> None:
     path = os.path.join(os.path.dirname(bot.account.db_path), __name__)
     if not os.path.exists(path):
         os.makedirs(path)
@@ -43,7 +46,7 @@ def deltabot_start(bot: DeltaBot) -> None:
 
 
 @simplebot.filter
-def filter_messages(message: Message, replies: Replies) -> None:
+def filter_messages(message: "Message", replies: "Replies") -> None:
     """Deltaland bot.
 
     A game-bot that allows you to join the deltaland world and play with people all over the world.
@@ -53,7 +56,7 @@ def filter_messages(message: Message, replies: Replies) -> None:
 
 
 @simplebot.command
-def start(bot: DeltaBot, message: Message, replies: Replies) -> None:
+def start(bot: "DeltaBot", message: "Message", replies: "Replies") -> None:
     """Start the game.
 
     Send this command to join the game.
@@ -84,7 +87,7 @@ def start(bot: DeltaBot, message: Message, replies: Replies) -> None:
 
 
 @simplebot.command(name="/name", hidden=True)
-def name_cmd(payload: str, message: Message, replies: Replies) -> None:
+def name_cmd(payload: str, message: "Message", replies: "Replies") -> None:
     """Set your name."""
     with session_scope() as session:
         player = get_player(session, message, replies)
@@ -105,7 +108,7 @@ def name_cmd(payload: str, message: Message, replies: Replies) -> None:
 
 
 @simplebot.command(name="/me")
-def me_cmd(message: Message, replies: Replies) -> None:
+def me_cmd(message: "Message", replies: "Replies") -> None:
     """Show your status."""
     with session_scope() as session:
         player = get_player(session, message, replies)
@@ -164,7 +167,7 @@ def me_cmd(message: Message, replies: Replies) -> None:
 
 
 @simplebot.command(hidden=True)
-def top(message: Message, replies: Replies) -> None:
+def top(message: "Message", replies: "Replies") -> None:
     """Show the list of scoreboards."""
     with session_scope() as session:
         player = get_player(session, message, replies)
@@ -181,7 +184,7 @@ def top(message: Message, replies: Replies) -> None:
 
 
 @simplebot.command(hidden=True)
-def top1(message: Message, replies: Replies) -> None:
+def top1(message: "Message", replies: "Replies") -> None:
     """Top gold collectors."""
     with session_scope() as session:
         player = get_player(session, message, replies)
@@ -213,7 +216,7 @@ def top1(message: Message, replies: Replies) -> None:
 
 
 @simplebot.command(hidden=True)
-def top2(message: Message, replies: Replies) -> None:
+def top2(message: "Message", replies: "Replies") -> None:
     """Most gold received from the magic cauldron."""
     with session_scope() as session:
         player = get_player(session, message, replies)
@@ -248,7 +251,7 @@ def top2(message: Message, replies: Replies) -> None:
 
 
 @simplebot.command(hidden=True)
-def top3(message: Message, replies: Replies) -> None:
+def top3(message: "Message", replies: "Replies") -> None:
     """Most wins in dice this month."""
     with session_scope() as session:
         player = get_player(session, message, replies)
@@ -281,7 +284,7 @@ def top3(message: Message, replies: Replies) -> None:
 
 
 @simplebot.command(hidden=True)
-def tavern(message: Message, replies: Replies) -> None:
+def tavern(message: "Message", replies: "Replies") -> None:
     """Go to the tavern."""
     with session_scope() as session:
         player = get_player(session, message, replies)
@@ -304,7 +307,7 @@ def tavern(message: Message, replies: Replies) -> None:
 
 
 @simplebot.command(hidden=True)
-def dice(bot: DeltaBot, message: Message, replies: Replies) -> None:
+def dice(bot: "DeltaBot", message: "Message", replies: "Replies") -> None:
     """Play dice in the tavern."""
     with session_scope() as session:
         player = get_player(session, message, replies)
@@ -319,7 +322,7 @@ def dice(bot: DeltaBot, message: Message, replies: Replies) -> None:
 
 
 @simplebot.command(hidden=True)
-def cauldron(message: Message, replies: Replies) -> None:
+def cauldron(message: "Message", replies: "Replies") -> None:
     """Toss a coin in the magic cauldron."""
     with session_scope() as session:
         player = get_player(session, message, replies)
@@ -340,7 +343,7 @@ def cauldron(message: Message, replies: Replies) -> None:
 
 
 @simplebot.command(name="/quests", hidden=True)
-def quests_cmd(message: Message, replies: Replies) -> None:
+def quests_cmd(message: "Message", replies: "Replies") -> None:
     """Show available quests."""
     with session_scope() as session:
         player = get_player(session, message, replies)
@@ -357,7 +360,7 @@ def quests_cmd(message: Message, replies: Replies) -> None:
 
 
 @simplebot.command(name="/quest", hidden=True)
-def quest_cmd(payload: str, message: Message, replies: Replies) -> None:
+def quest_cmd(payload: str, message: "Message", replies: "Replies") -> None:
     """Start a quest."""
     with session_scope() as session:
         player = get_player(session, message, replies)
