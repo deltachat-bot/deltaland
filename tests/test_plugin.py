@@ -1,4 +1,14 @@
 class TestPlugin:
+    def test_filter(self, mocker) -> None:
+        msg = mocker.get_one_reply("hi")
+        assert "❌" in msg.text
+
+        msg = mocker.get_one_reply("/start")
+        assert "❌" not in msg.text
+
+        msg = mocker.get_one_reply("hi")
+        assert "❌" not in msg.text
+
     def test_start(self, mocker) -> None:
         msg = mocker.get_one_reply("/start")
         assert "/me" in msg.text
@@ -34,6 +44,46 @@ class TestPlugin:
         assert "❌" not in msg.text
 
         msg = mocker.get_one_reply("/me")
+        assert "❌" not in msg.text
+
+    def test_top(self, mocker) -> None:
+        msg = mocker.get_one_reply("/top")
+        assert "❌" in msg.text
+
+        msg = mocker.get_one_reply("/start")
+        assert "❌" not in msg.text
+
+        msg = mocker.get_one_reply("/top")
+        assert "❌" not in msg.text
+
+    def test_top1(self, mocker) -> None:
+        msg = mocker.get_one_reply("/top1")
+        assert "❌" in msg.text
+
+        msg = mocker.get_one_reply("/start")
+        assert "❌" not in msg.text
+
+        msg = mocker.get_one_reply("/top1")
+        assert "❌" not in msg.text
+
+    def test_top2(self, mocker) -> None:
+        msg = mocker.get_one_reply("/top2")
+        assert "❌" in msg.text
+
+        msg = mocker.get_one_reply("/start")
+        assert "❌" not in msg.text
+
+        msg = mocker.get_one_reply("/top2")
+        assert "❌" not in msg.text
+
+    def test_top3(self, mocker) -> None:
+        msg = mocker.get_one_reply("/top3")
+        assert "❌" in msg.text
+
+        msg = mocker.get_one_reply("/start")
+        assert "❌" not in msg.text
+
+        msg = mocker.get_one_reply("/top3")
         assert "❌" not in msg.text
 
     def test_tavern(self, mocker) -> None:
@@ -91,14 +141,4 @@ class TestPlugin:
         assert "❌" in msg.text
 
         msg = mocker.get_one_reply("/quest_1")
-        assert "❌" not in msg.text
-
-    def test_filter(self, mocker) -> None:
-        msg = mocker.get_one_reply("hi")
-        assert "❌" in msg.text
-
-        msg = mocker.get_one_reply("/start")
-        assert "❌" not in msg.text
-
-        msg = mocker.get_one_reply("hi")
         assert "❌" not in msg.text
