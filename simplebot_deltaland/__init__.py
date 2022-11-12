@@ -158,7 +158,8 @@ def me_cmd(message: "Message", replies: "Replies") -> None:
 
         replies.add(
             text=f"""Name: {name}
-
+            🏅Level: {player.level}
+            ⚔️Atk: {player.attack}  🛡️Def: {player.defense}
             🔋Stamina: {player.stamina}/{player.max_stamina}{stamina_cooldown}
             💰{player.gold}
 
