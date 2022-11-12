@@ -9,7 +9,16 @@ from sqlalchemy import Column, ForeignKey, Integer, String, create_engine
 from sqlalchemy.ext.declarative import declarative_base, declared_attr
 from sqlalchemy.orm import backref, relationship, sessionmaker
 
-from .consts import MAX_HP, MAX_STAMINA, STAMINA_COOLDOWN, STARTING_GOLD, StateEnum
+from .consts import (
+    MAX_HP,
+    MAX_STAMINA,
+    STAMINA_COOLDOWN,
+    STARTING_ATTACK,
+    STARTING_DEFENSE,
+    STARTING_GOLD,
+    STARTING_LEVEL,
+    StateEnum,
+)
 
 if TYPE_CHECKING:
     from .quests import Quest
@@ -74,10 +83,10 @@ class Player(Base):
     )
 
     def __init__(self, **kwargs):
-        kwargs.setdefault("level", 1)
+        kwargs.setdefault("level", STARTING_LEVEL)
         kwargs.setdefault("exp", 0)
-        kwargs.setdefault("attack", 1)
-        kwargs.setdefault("defense", 1)
+        kwargs.setdefault("attack", STARTING_ATTACK)
+        kwargs.setdefault("defense", STARTING_DEFENSE)
         kwargs.setdefault("hp", MAX_HP)
         kwargs.setdefault("max_hp", MAX_HP)
         kwargs.setdefault("stamina", MAX_STAMINA)
