@@ -84,7 +84,7 @@ def get_next_day_timestamp() -> int:
 
 
 def get_next_battle_timestamp(last_battle: int) -> int:
-    return int(last_battle + 60 * 60 * 8)
+    return int((datetime.fromtimestamp(last_battle) + timedelta(hours=8)).timestamp())
 
 
 def get_next_day_cooldown(session) -> str:

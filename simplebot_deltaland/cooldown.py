@@ -14,6 +14,7 @@ from .consts import (
     StateEnum,
 )
 from .game import (
+    get_next_battle_timestamp,
     get_next_day_timestamp,
     get_next_month_timestamp,
     get_next_year_timestamp,
@@ -50,7 +51,9 @@ def _check_cooldows(bot: DeltaBot) -> None:
 
 
 def _process_world_cooldown(bot: DeltaBot, cooldown: Cooldown, session) -> None:
-    if cooldown.id == StateEnum.DAY:
+    if cooldown.id == StateEnum.BATTLE:
+        cooldown.ends_at = get_next_battle_timestamp(cooldown.ends_at)
+    elif cooldown.id == StateEnum.DAY:
         cooldown.ends_at = get_next_day_timestamp()
         winner = ""
         gift = session.query(CauldronCoin).count()
