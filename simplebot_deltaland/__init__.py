@@ -157,7 +157,7 @@ def me_cmd(message: "Message", replies: "Replies") -> None:
             stamina_cooldown = ""
 
         replies.add(
-            text=f"""Name: {name}
+            text=f"""{name}
             🏅Level: {player.level}
             ⚔️Atk: {player.attack}  🛡️Def: {player.defense}
             ❤️{player.hp}/{player.max_hp}
