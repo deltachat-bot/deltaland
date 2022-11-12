@@ -381,3 +381,60 @@ def quest_cmd(payload: str, message: "Message", replies: "Replies") -> None:
             replies.add(text=f"{quest.parting_msg}. You will be back in {duration}")
         else:
             replies.add(text="❌ Unknown quest")
+
+
+@simplebot.command(admin=True)
+def delete_player(payload: str, replies: "Replies") -> None:
+    """Delete a player account.
+
+    /delete_player 10
+    """
+    player_id = int(payload)
+    with session_scope() as session:
+        player = session.query(Player).filter_by(id=player_id).first()
+        if player:
+            session.delete(player)
+            replies.add(text=f"Player({player_id}) deleted")
+        else:
+            replies.add(text=f"❌ Unknown player: {player_id}")
+
+
+@simplebot.command(admin=True)
+def search_player(payload: str, replies: "Replies") -> None:
+    """Delete a player account.
+
+    /delete_player 10
+    """
+    with session_scope() as session:
+        text = ""
+        for player in session.query(Player).filter_by(name=payload):
+            text += f"ID: {player.id}\n"
+        if text:
+            replies.add(text=f"Search result for {payload!r}:\n\n" + text)
+        else:
+            replies.add(text=f"❌ No matches for: {payload}")
+
+
+@simplebot.command(admin=True)
+def player_gold(args: list, replies: "Replies") -> None:
+    """Add or substract gold to player.
+
+    /player_gold 10 +20
+    """
+    player_id, gold = args[0], _parse_number(args[1])
+    with session_scope() as session:
+        player = session.query(Player).filter_by(id=player_id).first()
+        if player:
+            player.gold = max(0, player.gold + gold)
+            replies.add(text=f"Player({player_id}) gold: {player.gold}")
+        else:
+            replies.add(text=f"❌ Unknown player: {player_id}")
+
+
+def _parse_number(numb: str) -> int:
+    if not numb.startswith(("-", "+")):
+        return 0
+    try:
+        return int(numb)
+    except ValueError:
+        return 0
