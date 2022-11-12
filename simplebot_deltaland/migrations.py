@@ -72,3 +72,6 @@ def migrate2(version: int, database: sqlite3.Connection, logger: Logger) -> None
             )
             database.execute("DROP TABLE player")
             database.execute("ALTER TABLE player2 RENAME TO player")
+
+            # due to bug in v1, cauldronrank table need to be cleaned up
+            database.execute("DELETE FROM cauldronrank WHERE gold=0")

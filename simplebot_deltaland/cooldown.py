@@ -51,6 +51,7 @@ def _check_cooldows(bot: DeltaBot) -> None:
 
 def _process_world_cooldown(bot: DeltaBot, cooldown: Cooldown, session) -> None:
     if cooldown.id == StateEnum.DAY:
+        cooldown.ends_at = get_next_day_timestamp()
         winner = ""
         gift = session.query(CauldronCoin).count()
         gift = max(MIN_CAULDRON_GIFT, min(MAX_CAULDRON_GIFT, gift))
@@ -68,8 +69,7 @@ def _process_world_cooldown(bot: DeltaBot, cooldown: Cooldown, session) -> None:
                 player.gold += gift
                 if not player.cauldron_rank:
                     player.cauldron_rank = CauldronRank(gold=0)
-                player.cauldron_rank += gift
-        cooldown.ends_at = get_next_day_timestamp()
+                player.cauldron_rank.gold += gift
     elif cooldown.id == StateEnum.MONTH:
         session.query(DiceRank).delete()
         cooldown.ends_at = get_next_month_timestamp()
