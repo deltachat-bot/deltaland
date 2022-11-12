@@ -5,7 +5,7 @@ from logging import Logger
 
 from simplebot.bot import DeltaBot
 
-from .consts import DATABASE_VERSION
+from .consts import DATABASE_VERSION, MAX_HP
 from .util import get_database_path
 
 
@@ -29,10 +29,11 @@ def run_migrations(bot: DeltaBot) -> None:
 
 
 def migrate2(version: int, database: sqlite3.Connection, logger: Logger) -> None:
-    if version < 2:
-        logger.info("Migrating database: v2")
+    new_version = 2
+    if version < new_version:
+        logger.info(f"Migrating database: v{new_version}")
         with database:
-            database.execute("UPDATE game SET version=?", (2,))
+            database.execute("UPDATE game SET version=?", (new_version,))
             database.execute("UPDATE player SET attack=1, defense=1")
             database.execute(
                 """CREATE TABLE IF NOT EXISTS cauldroncoin (
@@ -75,3 +76,12 @@ def migrate2(version: int, database: sqlite3.Connection, logger: Logger) -> None
 
             # due to bug in v1, cauldronrank table need to be cleaned up
             database.execute("DELETE FROM cauldronrank WHERE gold=0")
+
+
+def migrate3(version: int, database: sqlite3.Connection, logger: Logger) -> None:
+    new_version = 3
+    if version < new_version:
+        logger.info(f"Migrating database: v{new_version}")
+        with database:
+            database.execute("UPDATE game SET version=?", (new_version,))
+            database.execute("UPDATE player SET hp=?, max_hp=?", [MAX_HP] * 2)

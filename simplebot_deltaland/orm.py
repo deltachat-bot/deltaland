@@ -9,7 +9,7 @@ from sqlalchemy import Column, ForeignKey, Integer, String, create_engine
 from sqlalchemy.ext.declarative import declarative_base, declared_attr
 from sqlalchemy.orm import backref, relationship, sessionmaker
 
-from .consts import MAX_STAMINA, STAMINA_COOLDOWN, STARTING_GOLD, StateEnum
+from .consts import MAX_HP, MAX_STAMINA, STAMINA_COOLDOWN, STARTING_GOLD, StateEnum
 
 if TYPE_CHECKING:
     from .quests import Quest
@@ -78,6 +78,8 @@ class Player(Base):
         kwargs.setdefault("exp", 0)
         kwargs.setdefault("attack", 1)
         kwargs.setdefault("defense", 1)
+        kwargs.setdefault("hp", MAX_HP)
+        kwargs.setdefault("max_hp", MAX_HP)
         kwargs.setdefault("stamina", MAX_STAMINA)
         kwargs.setdefault("max_stamina", MAX_STAMINA)
         kwargs.setdefault("gold", STARTING_GOLD)
