@@ -66,24 +66,7 @@ def _process_world_cooldown(bot: DeltaBot, cooldown: Cooldown, session) -> None:
         _process_world_battle(session)
         cooldown.ends_at = get_next_battle_timestamp(cooldown.ends_at)
     elif cooldown.id == StateEnum.DAY:
-        winner = ""
-        gift = session.query(CauldronCoin).count()
-        gift = max(MIN_CAULDRON_GIFT, min(MAX_CAULDRON_GIFT, gift))
-        for coin in session.query(CauldronCoin).order_by(func.random()):
-            player = coin.player
-            session.delete(coin)
-            send_message(
-                bot,
-                player.id,
-                text=f"✨{winner or 'You'} received {gift}💰 from the magic cauldron✨",
-                filename=None if winner else get_image("cauldron"),
-            )
-            if not winner:
-                winner = player.get_name()
-                player.gold += gift
-                if not player.cauldron_rank:
-                    player.cauldron_rank = CauldronRank(gold=0)
-                player.cauldron_rank.gold += gift
+        _process_world_cauldron(bot, session)
         cooldown.ends_at = get_next_day_timestamp()
     elif cooldown.id == StateEnum.MONTH:
         session.query(DiceRank).delete()
@@ -95,6 +78,27 @@ def _process_world_cooldown(bot: DeltaBot, cooldown: Cooldown, session) -> None:
     else:
         bot.logger.warning(f"Unknown world state: {cooldown.id}")
         session.delete(cooldown)
+
+
+def _process_world_cauldron(bot, session) -> None:
+    winner = ""
+    gift = session.query(CauldronCoin).count()
+    gift = max(MIN_CAULDRON_GIFT, min(MAX_CAULDRON_GIFT, gift))
+    for coin in session.query(CauldronCoin).order_by(func.random()):
+        player = coin.player
+        session.delete(coin)
+        send_message(
+            bot,
+            player.id,
+            text=f"✨{winner or 'You'} received {gift}💰 from the magic cauldron✨",
+            filename=None if winner else get_image("cauldron"),
+        )
+        if not winner:
+            winner = player.get_name()
+            player.gold += gift
+            if not player.cauldron_rank:
+                player.cauldron_rank = CauldronRank(gold=0)
+            player.cauldron_rank.gold += gift
 
 
 def _process_world_battle(session) -> None:
