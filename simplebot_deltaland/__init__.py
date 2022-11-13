@@ -194,7 +194,7 @@ def battle(message: "Message", replies: "Replies") -> None:
 
         text = (
             "Goblins are greedy creatures attracted by gold, they attack the castle every 8 hours.\n"
-            "Select your combat plan for the next battle:\n"
+            "Select your combat plan for the next battle:\n\n"
             "**🗡️HIT**\nA precise hit avoiding feints, but can be parried.\n/hit\n\n"
             "**💥FEINT**\nA feint avoids the enemy's parry, but doesn't work against hits.\n/feint\n\n"
             "**⚔️PARRY**\nParry a hit and counterattack, but you could be deceived by a feint.\n/parry\n\n"
@@ -213,8 +213,8 @@ def hit(message: "Message", replies: "Replies") -> None:
         player.battle_tactic = BattleTactic(tactic=CombatTactic.HIT)
         battle_cooldown = get_next_battle_cooldown(session)
         text = (
-            "So you will use 🗡️HIT in the next battle, that sounds like a good plan."
-            " You joined the defensive formations. The next battle is in {battle_cooldown}."
+            "So you will use **🗡️HIT** in the next battle, that sounds like a good plan."
+            f" You joined the defensive formations. The next battle is in {battle_cooldown}."
         )
         replies.add(text=text)
 
@@ -230,8 +230,8 @@ def feint(message: "Message", replies: "Replies") -> None:
         player.battle_tactic = BattleTactic(tactic=CombatTactic.FEINT)
         battle_cooldown = get_next_battle_cooldown(session)
         text = (
-            "So you will use 💥FEINT in the next battle, that sounds like a good plan."
-            " You joined the defensive formations. The next battle is in {battle_cooldown}."
+            "So you will use **💥FEINT** in the next battle, that sounds like a good plan."
+            f" You joined the defensive formations. The next battle is in {battle_cooldown}."
         )
         replies.add(text=text)
 
@@ -247,8 +247,8 @@ def parry(message: "Message", replies: "Replies") -> None:
         player.battle_tactic = BattleTactic(tactic=CombatTactic.PARRY)
         battle_cooldown = get_next_battle_cooldown(session)
         text = (
-            "So you will use ⚔️PARRY in the next battle, that sounds like a good plan."
-            " You joined the defensive formations. The next battle is in {battle_cooldown}."
+            "So you will use **⚔️PARRY** in the next battle, that sounds like a good plan."
+            f" You joined the defensive formations. The next battle is in {battle_cooldown}."
         )
         replies.add(text=text)
 
