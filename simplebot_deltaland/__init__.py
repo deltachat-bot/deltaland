@@ -33,6 +33,7 @@ from .util import (
     is_valid_name,
     setdefault,
     validate_gold,
+    validate_hp,
     validate_resting,
 )
 
@@ -500,7 +501,11 @@ def quest_cmd(payload: str, message: "Message", replies: "Replies") -> None:
     """Start a quest."""
     with session_scope() as session:
         player = get_player(session, message, replies)
-        if not player or not validate_resting(player, replies, session):
+        if (
+            not player
+            or not validate_resting(player, replies, session)
+            or not validate_hp(player, replies)
+        ):
             return
 
         quest = get_quest(int(payload))

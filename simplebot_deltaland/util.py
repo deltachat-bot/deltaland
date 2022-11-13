@@ -109,6 +109,13 @@ def validate_gold(player: Player, required_gold: int, replies: Replies) -> bool:
     return False
 
 
+def validate_hp(player: Player, replies: Replies) -> bool:
+    if player.hp >= 100:
+        return True
+    replies.add(text="You need to heal your wounds and recover, come back later.")
+    return False
+
+
 def get_image(name: str) -> str:
     return os.path.join(_images_dir, f"{name}.webp")
 
