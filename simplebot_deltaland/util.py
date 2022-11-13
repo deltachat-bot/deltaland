@@ -168,7 +168,7 @@ def get_battle_result(player: Player) -> str:
         stats += f"❤️HP: {battle.hp:+}\n"
     return (
         f"{player_name} 🏅{player.level}\n"
-        "Your result on the battlefield:\n\n"
+        "Your last results on the battlefield:\n\n"
         "The goblins started to attack the castle,"
         f" one of them is quickly running towards {player_name}.\n\n"
         f"{text}{stats}"

@@ -189,17 +189,17 @@ def battle(message: "Message", replies: "Replies") -> None:
     """Choose battle tactics."""
     with session_scope() as session:
         player = get_player(session, message, replies)
-        if not player:
+        if not player and not validate_resting(player, replies):
             return
 
-        text = (
-            "Goblins are greedy creatures attracted by gold, they attack the castle every 8 hours.\n"
-            "Select your combat plan for the next battle:\n\n"
-            "**🗡️HIT**\nA precise hit avoiding feints, but can be parried.\n/hit\n\n"
-            "**💥FEINT**\nA feint avoids the enemy's parry, but doesn't work against hits.\n/feint\n\n"
-            "**⚔️PARRY**\nParry a hit and counterattack, but you could be deceived by a feint.\n/parry\n\n"
-        )
-        replies.add(text=text)
+    text = (
+        "Goblins are greedy creatures attracted by gold, they attack the castle every 8 hours.\n"
+        "Select your combat plan for the next battle:\n\n"
+        "**🗡️HIT**\nA precise hit avoiding feints, but can be parried.\n/hit\n\n"
+        "**💥FEINT**\nA feint avoids the enemy's parry, but doesn't work against hits.\n/feint\n\n"
+        "**⚔️PARRY**\nParry a hit and counterattack, but you could be deceived by a feint.\n/parry\n\n"
+    )
+    replies.add(text=text)
 
 
 @simplebot.command(hidden=True)
@@ -207,7 +207,7 @@ def hit(message: "Message", replies: "Replies") -> None:
     """Choose HIT as battle tactic."""
     with session_scope() as session:
         player = get_player(session, message, replies)
-        if not player:
+        if not player and not validate_resting(player, replies):
             return
 
         player.battle_tactic = BattleTactic(tactic=CombatTactic.HIT)
@@ -224,7 +224,7 @@ def feint(message: "Message", replies: "Replies") -> None:
     """Choose FEINT as battle tactic."""
     with session_scope() as session:
         player = get_player(session, message, replies)
-        if not player:
+        if not player and not validate_resting(player, replies):
             return
 
         player.battle_tactic = BattleTactic(tactic=CombatTactic.FEINT)
@@ -241,7 +241,7 @@ def parry(message: "Message", replies: "Replies") -> None:
     """Choose PARRY as battle tactic."""
     with session_scope() as session:
         player = get_player(session, message, replies)
-        if not player:
+        if not player and not validate_resting(player, replies):
             return
 
         player.battle_tactic = BattleTactic(tactic=CombatTactic.PARRY)
