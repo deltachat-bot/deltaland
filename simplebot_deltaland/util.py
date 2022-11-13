@@ -107,6 +107,7 @@ def get_database_path(bot: DeltaBot) -> str:
 
 
 def get_battle_result(player: Player) -> str:
+    battle = player.battle_report
     tie_msg = (
         "You both avoided each other's attacks."
         " The goblin was surprised by this outcome and ran away."
@@ -116,16 +117,16 @@ def get_battle_result(player: Player) -> str:
         " The wounded goblin fled as fast as he could, you fainted shortly after."
     )
     win_msg = "You killed the goblin. On his cold corpse you found some gold."
-    lose_msg = (
-        "This is sad, but you're nearly dead."
-        " The goblin took as much gold as he could before other warriors could aid you."
-    )
+    lose_msg = "The blow was so strong that you fainted."
+    if battle.gold:
+        lose_msg += " The goblin took as much gold as he could before other warriors could aid you."
+    else:
+        lose_msg += " The goblin was disappointed to see you didn't have a single gold coin in your pocket"
     hit_result = "{loser} feints but is defeated by {winner}'s hit!"
     feint_result = "{loser} tries to parry, but {winner} feints and hits!"
     parry_result = "{loser} tries to hit {winner}, but {winner} parries the attack and counterattacks!"
     monster_name = "the goblin"
     player_name = player.get_name()
-    battle = player.battle_report
     monster_tactic = battle.monster_tactic
     tactic = battle.tactic
     if tactic == CombatTactic.HIT:
@@ -169,6 +170,6 @@ def get_battle_result(player: Player) -> str:
         f"{player_name} 🏅{player.level}\n"
         "Your result on the battlefield:\n\n"
         "The goblins started to attack the castle,"
-        f" one of them is quickly running towards {player_name}.\n"
+        f" one of them is quickly running towards {player_name}.\n\n"
         f"{text}{stats}"
     )
