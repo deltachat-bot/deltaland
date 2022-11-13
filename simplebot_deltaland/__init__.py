@@ -198,6 +198,7 @@ def battle(message: "Message", replies: "Replies") -> None:
         "**🗡️HIT**\nA precise hit avoiding feints, but can be parried.\n/hit\n\n"
         "**💥FEINT**\nA feint avoids the enemy's parry, but doesn't work against hits.\n/feint\n\n"
         "**⚔️PARRY**\nParry a hit and counterattack, but you could be deceived by a feint.\n/parry\n\n"
+        "Last battle report: /report"
     )
     replies.add(text=text)
 
