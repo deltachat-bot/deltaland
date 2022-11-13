@@ -304,7 +304,7 @@ def top1(message: "Message", replies: "Replies") -> None:
         is_on_top = False
         text = ""
         for i, rank in enumerate(
-            session.query(BattleRank).order_by(BattleRank.gold.desc()).limit(15)
+            session.query(BattleRank).order_by(BattleRank.victories.desc()).limit(15)
         ):
             if player.id == rank.id:
                 is_on_top = True
