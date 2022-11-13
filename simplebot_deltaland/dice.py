@@ -73,8 +73,12 @@ def _play_dice(player1: Player, player2: Player, bot) -> None:
             "🎲 You threw the dice on the table:\n",
             f"{name1}: {dices1}",
             f"{name2}: {dices2}\n",
-            f"{name1} won! {earned_gold:+}💰",
+            f"{{}}{name1} won! {earned_gold:+}💰",
         ]
     )
-    send_message(bot, player1.id, text=text)
-    send_message(bot, player2.id, text=text)
+    send_message(
+        bot,
+        player1.id,
+        text=text.format("🎉 "),
+    )
+    send_message(bot, player2.id, text=text.format(""))
