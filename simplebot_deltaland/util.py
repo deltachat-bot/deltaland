@@ -2,13 +2,14 @@
 
 import os
 import string
+import time
 from typing import Optional
 
 from deltachat import Message
 from simplebot.bot import DeltaBot, Replies
 
-from .consts import CombatTactic, StateEnum
-from .orm import Player
+from .consts import WORLD_ID, CombatTactic, StateEnum
+from .orm import Cooldown, Player
 
 _scope = __name__.split(".", maxsplit=1)[0]
 _images_dir = os.path.join(os.path.dirname(__file__), "images")
@@ -79,9 +80,22 @@ def get_players(session):
     return session.query(Player).filter(Player.id > 0)
 
 
-def validate_resting(player: Player, replies: Replies) -> bool:
+def validate_resting(
+    player: Player, replies: Replies, session, ignore_battle: bool = False
+) -> bool:
+    if not ignore_battle:
+        remaining_time = (
+            session.query(Cooldown)
+            .filter_by(id=StateEnum.BATTLE, player_id=WORLD_ID)
+            .first()
+        ).ends_at - time.time()
+        if remaining_time < 60 * 11:
+            replies.add(text="Gobling battle is coming. You have no time for games.")
+            return False
+
     if player.state == StateEnum.REST:
         return True
+
     replies.add(text="You are too busy with a different adventure. Try a bit later.")
     return False
 

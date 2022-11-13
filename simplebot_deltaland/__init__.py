@@ -100,7 +100,7 @@ def name_cmd(payload: str, message: "Message", replies: "Replies") -> None:
     """Set your name."""
     with session_scope() as session:
         player = get_player(session, message, replies)
-        if not player or not validate_resting(player, replies):
+        if not player or not validate_resting(player, replies, session):
             return
 
         if player.name:
@@ -189,7 +189,9 @@ def battle(message: "Message", replies: "Replies") -> None:
     """Choose battle tactics."""
     with session_scope() as session:
         player = get_player(session, message, replies)
-        if not player and not validate_resting(player, replies):
+        if not player and not validate_resting(
+            player, replies, session, ignore_battle=True
+        ):
             return
 
     text = (
@@ -208,7 +210,9 @@ def hit(message: "Message", replies: "Replies") -> None:
     """Choose HIT as battle tactic."""
     with session_scope() as session:
         player = get_player(session, message, replies)
-        if not player and not validate_resting(player, replies):
+        if not player and not validate_resting(
+            player, replies, session, ignore_battle=True
+        ):
             return
 
         player.battle_tactic = BattleTactic(tactic=CombatTactic.HIT)
@@ -225,7 +229,9 @@ def feint(message: "Message", replies: "Replies") -> None:
     """Choose FEINT as battle tactic."""
     with session_scope() as session:
         player = get_player(session, message, replies)
-        if not player and not validate_resting(player, replies):
+        if not player and not validate_resting(
+            player, replies, session, ignore_battle=True
+        ):
             return
 
         player.battle_tactic = BattleTactic(tactic=CombatTactic.FEINT)
@@ -242,7 +248,9 @@ def parry(message: "Message", replies: "Replies") -> None:
     """Choose PARRY as battle tactic."""
     with session_scope() as session:
         player = get_player(session, message, replies)
-        if not player and not validate_resting(player, replies):
+        if not player and not validate_resting(
+            player, replies, session, ignore_battle=True
+        ):
             return
 
         player.battle_tactic = BattleTactic(tactic=CombatTactic.PARRY)
@@ -416,7 +424,7 @@ def tavern(message: "Message", replies: "Replies") -> None:
     """Go to the tavern."""
     with session_scope() as session:
         player = get_player(session, message, replies)
-        if not player or not validate_resting(player, replies):
+        if not player or not validate_resting(player, replies, session):
             return
 
     text = f"""**🍺 Tavern**
@@ -441,7 +449,7 @@ def dice(bot: "DeltaBot", message: "Message", replies: "Replies") -> None:
         player = get_player(session, message, replies)
         if (
             not player
-            or not validate_resting(player, replies)
+            or not validate_resting(player, replies, session)
             or not validate_gold(player, DICE_FEE, replies)
         ):
             return
@@ -454,7 +462,7 @@ def cauldron(message: "Message", replies: "Replies") -> None:
     """Toss a coin in the magic cauldron."""
     with session_scope() as session:
         player = get_player(session, message, replies)
-        if not player or not validate_resting(player, replies):
+        if not player or not validate_resting(player, replies, session):
             return
 
         cooldown = get_next_day_cooldown(session)
@@ -492,7 +500,7 @@ def quest_cmd(payload: str, message: "Message", replies: "Replies") -> None:
     """Start a quest."""
     with session_scope() as session:
         player = get_player(session, message, replies)
-        if not player or not validate_resting(player, replies):
+        if not player or not validate_resting(player, replies, session):
             return
 
         quest = get_quest(int(payload))
