@@ -99,7 +99,7 @@ def _process_world_cooldown(bot: DeltaBot, cooldown: Cooldown, session) -> None:
 
 
 def _process_world_battle(bot: DeltaBot, session) -> None:  # noqa
-    for player in session.query(Player):
+    for player in get_players(session):
         victory = False
         monster_tactic = random.choice(list(CombatTactic))
         gold = random.randint((player.level + 1) // 2, player.level + 1)
