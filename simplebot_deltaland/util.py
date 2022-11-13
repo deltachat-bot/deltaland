@@ -106,7 +106,7 @@ def get_database_path(bot: DeltaBot) -> str:
     return os.path.join(path, "sqlite.db")
 
 
-def get_battle_result(player: Player) -> str:  # noqa
+def get_battle_result(player: Player) -> str:
     tie_msg = (
         "You both avoided each other's attacks."
         " The goblin was surprised by this outcome and ran away."

@@ -29,11 +29,10 @@ from .orm import (
     CauldronRank,
     Cooldown,
     DiceRank,
-    Player,
     session_scope,
 )
 from .quests import get_quest
-from .util import get_image, send_message
+from .util import get_image, get_players, send_message
 
 
 def cooldown_loop(bot: DeltaBot) -> None:
@@ -64,7 +63,7 @@ def _check_cooldows(bot: DeltaBot) -> None:
 
 def _process_world_cooldown(bot: DeltaBot, cooldown: Cooldown, session) -> None:
     if cooldown.id == StateEnum.BATTLE:
-        _process_world_battle(bot, session)
+        _process_world_battle(session)
         cooldown.ends_at = get_next_battle_timestamp(cooldown.ends_at)
     elif cooldown.id == StateEnum.DAY:
         winner = ""
@@ -98,7 +97,7 @@ def _process_world_cooldown(bot: DeltaBot, cooldown: Cooldown, session) -> None:
         session.delete(cooldown)
 
 
-def _process_world_battle(bot: DeltaBot, session) -> None:  # noqa
+def _process_world_battle(session) -> None:
     for player in get_players(session):
         victory = False
         monster_tactic = random.choice(list(CombatTactic))
