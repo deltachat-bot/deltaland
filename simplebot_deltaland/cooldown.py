@@ -161,7 +161,7 @@ def _process_world_battle(session) -> None:
         if victory:
             if not player.battle_rank:
                 player.battle_rank = BattleRank(victories=0)
-            player.battle_rank += 1
+            player.battle_rank.victories += 1
 
 
 def _process_player_cooldown(bot: DeltaBot, cooldown: Cooldown, session) -> None:
