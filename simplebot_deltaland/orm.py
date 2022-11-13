@@ -10,6 +10,7 @@ from sqlalchemy.ext.declarative import declarative_base, declared_attr
 from sqlalchemy.orm import backref, relationship, sessionmaker
 
 from .consts import (
+    LIFEREGEN_COOLDOWN,
     MAX_HP,
     MAX_STAMINA,
     STAMINA_COOLDOWN,
@@ -66,6 +67,24 @@ class Player(Base):
         backref=backref("player", uselist=False),
         cascade="all, delete, delete-orphan",
     )
+    battle_tactic = relationship(
+        "BattleTactic",
+        uselist=False,
+        backref=backref("player", uselist=False),
+        cascade="all, delete, delete-orphan",
+    )
+    battle_report = relationship(
+        "BattleReport",
+        uselist=False,
+        backref=backref("player", uselist=False),
+        cascade="all, delete, delete-orphan",
+    )
+    battle_rank = relationship(
+        "BattleRank",
+        uselist=False,
+        backref=backref("player", uselist=False),
+        cascade="all, delete, delete-orphan",
+    )
     dice_rank = relationship(
         "DiceRank",
         uselist=False,
@@ -113,6 +132,23 @@ class Player(Base):
                 )
             )
 
+    def reduce_hp(self, hit_points: int) -> int:
+        """Returns the effective amount of hp reduced"""
+        hit_points = min(self.hp - 1, hit_points)
+        self.hp -= hit_points
+        restoring = False
+        for cooldwn in self.cooldowns:
+            if cooldwn.id == StateEnum.HEALING:
+                restoring = True
+                break
+        if self.hp < self.max_hp and not restoring:
+            self.cooldowns.append(
+                Cooldown(  # noqa
+                    id=StateEnum.HEALING, ends_at=time.time() + LIFEREGEN_COOLDOWN
+                )
+            )
+        return hit_points
+
     def start_quest(self, quest: "Quest") -> None:
         self.state = quest.id
         self.cooldowns.append(
@@ -125,6 +161,25 @@ class Cooldown(Base):
     id = Column(Integer, primary_key=True)
     player_id = Column(Integer, ForeignKey("player.id"), primary_key=True)
     ends_at = Column(Integer, nullable=False)
+
+
+class BattleTactic(Base):
+    id = Column(Integer, ForeignKey("player.id"), primary_key=True)
+    tactic = Column(Integer, nullable=False)
+
+
+class BattleReport(Base):
+    id = Column(Integer, ForeignKey("player.id"), primary_key=True)
+    tactic = Column(Integer, nullable=False)
+    monster_tactic = Column(Integer, nullable=False)
+    hp = Column(Integer, nullable=False)
+    exp = Column(Integer, nullable=False)
+    gold = Column(Integer, nullable=False)
+
+
+class BattleRank(Base):
+    id = Column(Integer, ForeignKey("player.id"), primary_key=True)
+    victories = Column(Integer, nullable=False)
 
 
 class DiceRank(Base):

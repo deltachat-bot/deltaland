@@ -6,12 +6,14 @@ from typing import TYPE_CHECKING
 
 import simplebot
 
-from .consts import DICE_FEE, StateEnum
+from .consts import DICE_FEE, CombatTactic, StateEnum
 from .cooldown import cooldown_loop
 from .dice import play_dice
-from .game import get_next_day_cooldown, init_game
+from .game import get_next_battle_cooldown, get_next_day_cooldown, init_game
 from .migrations import run_migrations
 from .orm import (
+    BattleRank,
+    BattleTactic,
     CauldronCoin,
     CauldronRank,
     Cooldown,
@@ -22,6 +24,7 @@ from .orm import (
 )
 from .quests import get_quest, quests
 from .util import (
+    get_battle_result,
     get_database_path,
     get_image,
     get_player,
@@ -126,7 +129,10 @@ def me_cmd(message: "Message", replies: "Replies") -> None:
         if not player.name:
             name += " (set name with /name)"
         if player.state == StateEnum.REST:
-            state = "🛌 Resting"
+            if player.battle_tactic:
+                state = "🏰 Defending the castle"
+            else:
+                state = "🛌 Resting"
         elif player.state == StateEnum.PLAYING_DICE:
             state = "🎲 Rolling the dice"
         else:
@@ -155,23 +161,109 @@ def me_cmd(message: "Message", replies: "Replies") -> None:
                 stamina_cooldown += human_time_duration(seconds)
         else:
             stamina_cooldown = ""
+        battle_cooldown = get_next_battle_cooldown(session)
 
         replies.add(
-            text=f"""{name}
+            text=f"""Goblin attack in {battle_cooldown}!
+
+            {name}
             🏅Level: {player.level}
             ⚔️Atk: {player.attack}  🛡️Def: {player.defense}
-            ❤️{player.hp}/{player.max_hp}
+            ❤️HP: {player.hp}/{player.max_hp}
             🔋Stamina: {player.stamina}/{player.max_stamina}{stamina_cooldown}
             💰{player.gold}
 
             State:
             {state}
 
+            ⚔️ Battle: /battle
             🗺️ Quests: /quests
             🍺 Tavern: /tavern
             📊 Ranking: /top
             """
         )
+
+
+@simplebot.command(hidden=True)
+def battle(message: "Message", replies: "Replies") -> None:
+    """Choose battle tactics."""
+    with session_scope() as session:
+        player = get_player(session, message, replies)
+        if not player:
+            return
+
+        text = (
+            "Goblins are greedy creatures attracted by gold, they attack the castle every 8 hours.\n"
+            "Select your combat plan for the next battle:\n"
+            "**🗡️HIT**\nA precise hit avoiding feints, but can be parried.\n/hit\n\n"
+            "**💥FEINT**\nA feint avoids the enemy's parry, but doesn't work against hits.\n/feint\n\n"
+            "**⚔️PARRY**\nParry a hit and counterattack, but you could be deceived by a feint.\n/parry\n\n"
+        )
+        replies.add(text=text)
+
+
+@simplebot.command(hidden=True)
+def hit(message: "Message", replies: "Replies") -> None:
+    """Choose HIT as battle tactic."""
+    with session_scope() as session:
+        player = get_player(session, message, replies)
+        if not player:
+            return
+
+        player.battle_tactic = BattleTactic(tactic=CombatTactic.HIT)
+        battle_cooldown = get_next_battle_cooldown(session)
+        text = (
+            "So you will use 🗡️HIT in the next battle, that sounds like a good plan."
+            " You joined the defensive formations. The next battle is in {battle_cooldown}."
+        )
+        replies.add(text=text)
+
+
+@simplebot.command(hidden=True)
+def feint(message: "Message", replies: "Replies") -> None:
+    """Choose FEINT as battle tactic."""
+    with session_scope() as session:
+        player = get_player(session, message, replies)
+        if not player:
+            return
+
+        player.battle_tactic = BattleTactic(tactic=CombatTactic.FEINT)
+        battle_cooldown = get_next_battle_cooldown(session)
+        text = (
+            "So you will use 💥FEINT in the next battle, that sounds like a good plan."
+            " You joined the defensive formations. The next battle is in {battle_cooldown}."
+        )
+        replies.add(text=text)
+
+
+@simplebot.command(hidden=True)
+def parry(message: "Message", replies: "Replies") -> None:
+    """Choose PARRY as battle tactic."""
+    with session_scope() as session:
+        player = get_player(session, message, replies)
+        if not player:
+            return
+
+        player.battle_tactic = BattleTactic(tactic=CombatTactic.PARRY)
+        battle_cooldown = get_next_battle_cooldown(session)
+        text = (
+            "So you will use ⚔️PARRY in the next battle, that sounds like a good plan."
+            " You joined the defensive formations. The next battle is in {battle_cooldown}."
+        )
+        replies.add(text=text)
+
+
+@simplebot.command(hidden=True)
+def report(message: "Message", replies: "Replies") -> None:
+    """Show your last results in the battlefield."""
+    with session_scope() as session:
+        player = get_player(session, message, replies)
+        if not player:
+            return
+        if not player.battle_report:
+            replies.add(text="You were not in the town in the last battle.")
+        else:
+            replies.add(text=get_battle_result(player), filename=get_image("goblin"))
 
 
 @simplebot.command(hidden=True)
@@ -184,15 +276,46 @@ def top(message: "Message", replies: "Replies") -> None:
 
         rankings = [
             "**📊 Ranking**",
-            "**Midas's Disciples**\n💰 Top gold collectors\n/top1",
-            "**Cauldron Worshipers**\n🍀 Most gold received from the magic cauldron\n/top2",
-            "**Luckiest Gamblers**\n🎲 Most wins in dice\n/top3",
+            "**Goblin Slayers**\n⚔️ Most victories in the battlefield\n/top1",
+            "**Midas's Disciples**\n💰 Top gold collectors\n/top2",
+            "**Cauldron Worshipers**\n🍀 Most gold received from the magic cauldron\n/top3",
+            "**Luckiest Gamblers**\n🎲 Most wins in dice\n/top4",
         ]
         replies.add(text="\n\n".join(rankings))
 
 
 @simplebot.command(hidden=True)
 def top1(message: "Message", replies: "Replies") -> None:
+    """Most victories in the battlefield."""
+    with session_scope() as session:
+        player = get_player(session, message, replies)
+        if not player:
+            return
+
+        is_on_top = False
+        text = ""
+        for i, rank in enumerate(
+            session.query(BattleRank).order_by(BattleRank.gold.desc()).limit(15)
+        ):
+            if player.id == rank.id:
+                is_on_top = True
+                marker = "#️⃣"
+            else:
+                marker = "#"
+            text += f"{marker}{i+1} {rank.player.get_name()} {rank.victories}⚔️\n"
+        if not is_on_top and text:
+            text += "\n...\n"
+            victories = player.battle_rank.victories if player.battle_rank else 0
+            text += f"{player.get_name()} {victories}⚔️"
+        if text:
+            text = "**⚔️ Most victories in the battlefield this month**\n\n" + text
+        else:
+            text = "Nobody has defeated goblins this month"
+        replies.add(text=text)
+
+
+@simplebot.command(hidden=True)
+def top2(message: "Message", replies: "Replies") -> None:
     """Top gold collectors."""
     with session_scope() as session:
         player = get_player(session, message, replies)
@@ -224,7 +347,7 @@ def top1(message: "Message", replies: "Replies") -> None:
 
 
 @simplebot.command(hidden=True)
-def top2(message: "Message", replies: "Replies") -> None:
+def top3(message: "Message", replies: "Replies") -> None:
     """Most gold received from the magic cauldron."""
     with session_scope() as session:
         player = get_player(session, message, replies)
@@ -256,7 +379,7 @@ def top2(message: "Message", replies: "Replies") -> None:
 
 
 @simplebot.command(hidden=True)
-def top3(message: "Message", replies: "Replies") -> None:
+def top4(message: "Message", replies: "Replies") -> None:
     """Most wins in dice this month."""
     with session_scope() as session:
         player = get_player(session, message, replies)
@@ -284,7 +407,7 @@ def top3(message: "Message", replies: "Replies") -> None:
         if text:
             text = "**🎲 Most wins in dice this month**\n\n" + text
         else:
-            text = "Nobody has earned gold playing dice this month, be the first!"
+            text = "Nobody has earned gold playing dice this month"
         replies.add(text=text)
 
 

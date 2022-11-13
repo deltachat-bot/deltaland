@@ -7,7 +7,7 @@ from typing import Optional
 from deltachat import Message
 from simplebot.bot import DeltaBot, Replies
 
-from .consts import StateEnum
+from .consts import CombatTactic, StateEnum
 from .orm import Player
 
 _scope = __name__.split(".", maxsplit=1)[0]
@@ -104,3 +104,71 @@ def get_database_path(bot: DeltaBot) -> str:
     if not os.path.exists(path):
         os.makedirs(path)
     return os.path.join(path, "sqlite.db")
+
+
+def get_battle_result(player: Player) -> str:  # noqa
+    tie_msg = (
+        "You both avoided each other's attacks."
+        " The goblin was surprised by this outcome and ran away."
+    )
+    tie_damage_msg = (
+        "You exchanged blows."
+        " The wounded goblin fled as fast as he could, you fainted shortly after."
+    )
+    win_msg = "You killed the goblin. On his cold corpse you found some gold."
+    lose_msg = (
+        "This is sad, but you're nearly dead."
+        " The goblin took as much gold as he could before other warriors could aid you."
+    )
+    hit_result = "{loser} feints but is defeated by {winner}'s hit!"
+    feint_result = "{loser} tries to parry, but {winner} feints and hits!"
+    parry_result = "{loser} tries to hit {winner}, but {winner} parries the attack and counterattacks!"
+    monster_name = "the goblin"
+    player_name = player.get_name()
+    battle = player.battle_report
+    monster_tactic = battle.monster_tactic
+    tactic = battle.tactic
+    if tactic == CombatTactic.HIT:
+        if monster_tactic == CombatTactic.HIT:
+            text = tie_damage_msg
+        elif monster_tactic == CombatTactic.FEINT:
+            result = hit_result.format(winner=player_name, loser=monster_name)
+            text = f"{result}\n{win_msg}"
+        else:  # monster_tactic == CombatTactic.PARRY
+            result = parry_result.format(winner=monster_name, loser=player_name)
+            text = f"{result}\n{lose_msg}"
+    elif tactic == CombatTactic.FEINT:
+        if monster_tactic == CombatTactic.HIT:
+            result = hit_result.format(winner=monster_name, loser=player_name)
+            text = f"{result}\n{lose_msg}"
+        elif monster_tactic == CombatTactic.FEINT:
+            text = tie_damage_msg
+        else:  # monster_tactic == CombatTactic.PARRY
+            result = feint_result.format(winner=player_name, loser=monster_name)
+            text = f"{result}\n{win_msg}"
+    elif tactic == CombatTactic.PARRY:
+        if monster_tactic == CombatTactic.HIT:
+            result = parry_result.format(winner=player_name, loser=monster_name)
+            text = f"{result}\n{win_msg}"
+        elif monster_tactic == CombatTactic.FEINT:
+            result = feint_result.format(winner=monster_name, loser=player_name)
+            text = f"{result}\n{lose_msg}"
+        else:  # monster_tactic == CombatTactic.PARRY
+            text = tie_msg
+    else:  # not parting on battle
+        text = f"{player_name} was petrified by the fear and could't avoid {monster_name}'s attack.\n{lose_msg}"
+
+    stats = "\n\n"
+    if battle.exp:
+        stats += f"🔥Exp: {battle.exp:+}\n"
+    if battle.gold:
+        stats += f"💰Gold: {battle.gold:+}\n"
+    if battle.hp:
+        stats += f"❤️HP: {battle.hp:+}\n"
+    return (
+        f"{player_name} 🏅{player.level}\n"
+        "Your result on the battlefield:\n\n"
+        "The goblins started to attack the castle,"
+        f" one of them is quickly running towards {player_name}.\n"
+        f"{text}{stats}"
+    )

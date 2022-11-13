@@ -87,6 +87,15 @@ def get_next_battle_timestamp(last_battle: int) -> int:
     return int((datetime.fromtimestamp(last_battle) + timedelta(hours=8)).timestamp())
 
 
+def get_next_battle_cooldown(session) -> str:
+    remaining_time = (
+        session.query(Cooldown)
+        .filter_by(id=StateEnum.BATTLE, player_id=WORLD_ID)
+        .first()
+    ).ends_at - time.time()
+    return human_time_duration(remaining_time)
+
+
 def get_next_day_cooldown(session) -> str:
     remaining_time = (
         session.query(Cooldown).filter_by(id=StateEnum.DAY, player_id=WORLD_ID).first()

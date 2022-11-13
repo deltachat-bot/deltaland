@@ -1,5 +1,6 @@
 """Cooldown loop logic"""
 
+import random
 import time
 
 from simplebot import DeltaBot
@@ -7,10 +8,12 @@ from sqlalchemy import func
 
 from .consts import (
     DICE_FEE,
+    LIFEREGEN_COOLDOWN,
     MAX_CAULDRON_GIFT,
     MIN_CAULDRON_GIFT,
     STAMINA_COOLDOWN,
     WORLD_ID,
+    CombatTactic,
     StateEnum,
 )
 from .game import (
@@ -19,7 +22,16 @@ from .game import (
     get_next_month_timestamp,
     get_next_year_timestamp,
 )
-from .orm import CauldronCoin, CauldronRank, Cooldown, DiceRank, session_scope
+from .orm import (
+    BattleRank,
+    BattleReport,
+    CauldronCoin,
+    CauldronRank,
+    Cooldown,
+    DiceRank,
+    Player,
+    session_scope,
+)
 from .quests import get_quest
 from .util import get_image, send_message
 
@@ -52,9 +64,9 @@ def _check_cooldows(bot: DeltaBot) -> None:
 
 def _process_world_cooldown(bot: DeltaBot, cooldown: Cooldown, session) -> None:
     if cooldown.id == StateEnum.BATTLE:
+        _process_world_battle(bot, session)
         cooldown.ends_at = get_next_battle_timestamp(cooldown.ends_at)
     elif cooldown.id == StateEnum.DAY:
-        cooldown.ends_at = get_next_day_timestamp()
         winner = ""
         gift = session.query(CauldronCoin).count()
         gift = max(MIN_CAULDRON_GIFT, min(MAX_CAULDRON_GIFT, gift))
@@ -73,8 +85,10 @@ def _process_world_cooldown(bot: DeltaBot, cooldown: Cooldown, session) -> None:
                 if not player.cauldron_rank:
                     player.cauldron_rank = CauldronRank(gold=0)
                 player.cauldron_rank.gold += gift
+        cooldown.ends_at = get_next_day_timestamp()
     elif cooldown.id == StateEnum.MONTH:
         session.query(DiceRank).delete()
+        session.query(BattleRank).delete()
         cooldown.ends_at = get_next_month_timestamp()
     elif cooldown.id == StateEnum.YEAR:
         session.query(CauldronRank).delete()
@@ -82,6 +96,73 @@ def _process_world_cooldown(bot: DeltaBot, cooldown: Cooldown, session) -> None:
     else:
         bot.logger.warning(f"Unknown world state: {cooldown.id}")
         session.delete(cooldown)
+
+
+def _process_world_battle(bot: DeltaBot, session) -> None:  # noqa
+    for player in session.query(Player):
+        victory = False
+        monster_tactic = random.choice(list(CombatTactic))
+        gold = random.randint((player.level + 1) // 2, player.level + 1)
+        hit_points = player.max_hp // 3
+        if player.battle_tactic:
+            tactic = player.battle_tactic.tactic
+            session.delete(player.battle_tactic)
+        else:
+            tactic = CombatTactic.NONE
+        battle = BattleReport(
+            tactic=tactic, monster_tactic=monster_tactic, exp=0, gold=0, hp=0
+        )
+        if tactic == CombatTactic.HIT:
+            if monster_tactic == CombatTactic.HIT:
+                # TODO: +50% Exp
+                battle.hp = -player.reduce_hp(hit_points // 2)  # -50% hit_points
+            elif monster_tactic == CombatTactic.FEINT:
+                victory = True
+                # TODO: +100% Exp
+                battle.gold = gold
+                player.gold += battle.gold
+            else:  # monster_tactic == CombatTactic.PARRY
+                # TODO: +25% Exp
+                battle.gold = -min(player.gold, gold)
+                player.gold += battle.gold
+                battle.hp = -player.reduce_hp(hit_points)  # -100% hit_points
+        elif tactic == CombatTactic.FEINT:
+            if monster_tactic == CombatTactic.HIT:
+                # TODO: +25% Exp
+                battle.gold = -min(player.gold, gold)
+                player.gold += battle.gold
+                battle.hp = -player.reduce_hp(hit_points)  # -100% hit_points
+            elif monster_tactic == CombatTactic.FEINT:
+                # TODO: +50% Exp
+                battle.hp = -player.reduce_hp(hit_points // 2)  # -50% hit_points
+            else:  # monster_tactic == CombatTactic.PARRY
+                victory = True
+                # TODO: +100% Exp
+                battle.gold = gold
+                player.gold += battle.gold
+        elif tactic == CombatTactic.PARRY:
+            if monster_tactic == CombatTactic.HIT:
+                victory = True
+                # TODO: +100% Exp
+                battle.gold = gold
+                player.gold += battle.gold
+            elif monster_tactic == CombatTactic.FEINT:
+                # TODO: +25% Exp
+                battle.gold = -min(player.gold, gold)
+                player.gold += battle.gold
+                battle.hp = -player.reduce_hp(hit_points)  # -100% hit_points
+            else:  # monster_tactic == CombatTactic.PARRY
+                pass  # TODO: +25% Exp
+        else:  # didn't defend the castle
+            battle.gold = -min(player.gold, gold)
+            player.gold += battle.gold
+            battle.hp = -player.reduce_hp(hit_points)  # -100% hit_points
+
+        player.battle_report = battle
+        if victory:
+            if not player.battle_rank:
+                player.battle_rank = BattleRank(victories=0)
+            player.battle_rank += 1
 
 
 def _process_player_cooldown(bot: DeltaBot, cooldown: Cooldown, session) -> None:
@@ -97,6 +178,13 @@ def _process_player_cooldown(bot: DeltaBot, cooldown: Cooldown, session) -> None
             )
         else:
             cooldown.ends_at = cooldown.ends_at + STAMINA_COOLDOWN
+    elif cooldown.id == StateEnum.HEALING:
+        player = cooldown.player
+        player.hp += 1
+        if player.hp >= player.max_hp:
+            session.delete(cooldown)
+        else:
+            cooldown.ends_at = cooldown.ends_at + LIFEREGEN_COOLDOWN
     elif cooldown.id == StateEnum.PLAYING_DICE:
         player = cooldown.player
         session.delete(cooldown)
