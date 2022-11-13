@@ -270,18 +270,17 @@ def report(message: "Message", replies: "Replies") -> None:
 def top(message: "Message", replies: "Replies") -> None:
     """Show the list of scoreboards."""
     with session_scope() as session:
-        player = get_player(session, message, replies)
-        if not player:
+        if not get_player(session, message, replies):
             return
 
-        rankings = [
-            "**📊 Ranking**",
-            "**Goblin Slayers**\n⚔️ Most victories in the battlefield\n/top1",
-            "**Midas's Disciples**\n💰 Top gold collectors\n/top2",
-            "**Cauldron Worshipers**\n🍀 Most gold received from the magic cauldron\n/top3",
-            "**Luckiest Gamblers**\n🎲 Most wins in dice\n/top4",
-        ]
-        replies.add(text="\n\n".join(rankings))
+    rankings = [
+        "**📊 Ranking**",
+        "**Goblin Slayers**\n⚔️ Most victories in the battlefield\n/top1",
+        "**Midas's Disciples**\n💰 Top gold collectors\n/top2",
+        "**Cauldron Worshipers**\n🍀 Most gold received from the magic cauldron\n/top3",
+        "**Luckiest Gamblers**\n🎲 Most wins in dice\n/top4",
+    ]
+    replies.add(text="\n\n".join(rankings))
 
 
 @simplebot.command(hidden=True)
