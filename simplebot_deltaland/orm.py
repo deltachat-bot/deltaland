@@ -18,6 +18,9 @@ from .consts import (
     STARTING_DEFENSE,
     STARTING_GOLD,
     STARTING_LEVEL,
+    THIEVE_COOLDOWN,
+    THIEVE_SPOTTED_COOLDOWN,
+    THIEVE_STAMINA_COST,
     StateEnum,
 )
 
@@ -61,6 +64,13 @@ class Player(Base):
     max_stamina = Column(Integer)
     gold = Column(Integer)
     state = Column(Integer)
+    thief_id = Column(Integer, ForeignKey("player.id"))
+    thief = relationship(
+        "Player",
+        uselist=False,
+        backref=backref("sentinel", uselist=False),
+        remote_side="player.c.id",
+    )
     cauldron_coin = relationship(
         "CauldronCoin",
         uselist=False,
@@ -93,6 +103,12 @@ class Player(Base):
     )
     cauldron_rank = relationship(
         "CauldronRank",
+        uselist=False,
+        backref=backref("player", uselist=False),
+        cascade="all, delete, delete-orphan",
+    )
+    sentinel_rank = relationship(
+        "SentinelRank",
         uselist=False,
         backref=backref("player", uselist=False),
         cascade="all, delete, delete-orphan",
@@ -156,6 +172,37 @@ class Player(Base):
         )
         self.reduce_stamina(quest.stamina)
 
+    def start_thieving(self) -> None:
+        self.state = StateEnum.THIEVING
+        self.cooldowns.append(
+            Cooldown(  # noqa
+                id=StateEnum.THIEVING, ends_at=time.time() + THIEVE_COOLDOWN
+            )
+        )
+        self.reduce_stamina(THIEVE_STAMINA_COST)
+
+    def start_spotting(self, thief: "Player") -> None:
+        self.state = StateEnum.SPOTTED_THIEF
+        self.thief = thief
+        self.cooldowns.append(
+            Cooldown(  # noqa
+                id=StateEnum.SPOTTED_THIEF,
+                ends_at=time.time() + THIEVE_SPOTTED_COOLDOWN,
+            )
+        )
+
+    def stop_spotting(self) -> None:
+        thief = self.thief
+        self.thief = None
+        thief.state = self.state = StateEnum.REST
+        index = -1
+        for i, cooldwn in enumerate(self.cooldowns):
+            if cooldwn.id == StateEnum.SPOTTED_THIEF:
+                index = i
+                break
+        assert index >= 0
+        self.cooldowns.pop(index)
+
 
 class Cooldown(Base):
     id = Column(Integer, primary_key=True)
@@ -194,6 +241,11 @@ class CauldronRank(Base):
 
 class CauldronCoin(Base):
     id = Column(Integer, ForeignKey("player.id"), primary_key=True)
+
+
+class SentinelRank(Base):
+    id = Column(Integer, ForeignKey("player.id"), primary_key=True)
+    stopped = Column(Integer, nullable=False)
 
 
 @contextmanager

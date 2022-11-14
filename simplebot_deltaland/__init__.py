@@ -1,12 +1,20 @@
 """hooks, filters and commands definitions."""
 
+import random
 import time
 from threading import Thread
 from typing import TYPE_CHECKING
 
 import simplebot
 
-from .consts import DICE_FEE, CombatTactic, StateEnum
+from .consts import (
+    DICE_FEE,
+    THIEVE_COOLDOWN,
+    THIEVE_LEVEL,
+    THIEVE_STAMINA_COST,
+    CombatTactic,
+    StateEnum,
+)
 from .cooldown import cooldown_loop
 from .dice import play_dice
 from .game import get_next_battle_cooldown, get_next_day_cooldown, init_game
@@ -19,11 +27,13 @@ from .orm import (
     Cooldown,
     DiceRank,
     Player,
+    SentinelRank,
     init,
     session_scope,
 )
 from .quests import get_quest, quests
 from .util import (
+    calculate_interfere_gold,
     get_battle_result,
     get_database_path,
     get_image,
@@ -31,10 +41,13 @@ from .util import (
     get_players,
     human_time_duration,
     is_valid_name,
+    send_message,
     setdefault,
     validate_gold,
     validate_hp,
+    validate_level,
     validate_resting,
+    validate_stamina,
 )
 
 if TYPE_CHECKING:
@@ -136,6 +149,10 @@ def me_cmd(message: "Message", replies: "Replies") -> None:
                 state = "🛌 Resting"
         elif player.state == StateEnum.PLAYING_DICE:
             state = "🎲 Rolling the dice"
+        elif player.state == StateEnum.THIEVING:
+            state = "🗡️ Thieving in the town"
+        elif player.state == StateEnum.SPOTTED_THIEF:
+            state = "👀 noticed thief"
         else:
             quest = get_quest(player.state)
             if quest:
@@ -289,6 +306,7 @@ def top(message: "Message", replies: "Replies") -> None:
         "**Midas's Disciples**\n💰 Top gold collectors\n/top2",
         "**Cauldron Worshipers**\n🍀 Most gold received from the magic cauldron\n/top3",
         "**Luckiest Gamblers**\n🎲 Most wins in dice\n/top4",
+        "**Royal Guards**\n🗡️ Most thieves stopped\n/top5",
     ]
     replies.add(text="\n\n".join(rankings))
 
@@ -421,6 +439,36 @@ def top4(message: "Message", replies: "Replies") -> None:
 
 
 @simplebot.command(hidden=True)
+def top5(message: "Message", replies: "Replies") -> None:
+    """Most thieves stopped."""
+    with session_scope() as session:
+        player = get_player(session, message, replies)
+        if not player:
+            return
+
+        is_on_top = False
+        text = ""
+        for i, rank in enumerate(
+            session.query(SentinelRank).order_by(SentinelRank.stopped.desc()).limit(15)
+        ):
+            if player.id == rank.id:
+                is_on_top = True
+                marker = "#️⃣"
+            else:
+                marker = "#"
+            text += f"{marker}{i+1} {rank.player.get_name()} {rank.stopped}🗡️\n"
+        if not is_on_top and text:
+            text += "\n...\n"
+            stopped = player.sentinel_rank.stopped if player.sentinel_rank else 0
+            text += f"{player.get_name()} {stopped}🗡️"
+        if text:
+            text = "**🗡️ Most thieves stopped this month**\n\n" + text
+        else:
+            text = "Nobody has stopped thieves this month"
+        replies.add(text=text)
+
+
+@simplebot.command(hidden=True)
 def tavern(message: "Message", replies: "Replies") -> None:
     """Go to the tavern."""
     with session_scope() as session:
@@ -487,7 +535,13 @@ def quests_cmd(message: "Message", replies: "Replies") -> None:
         if not player:
             return
 
-    text = ""
+        text = ""
+        if player.level >= THIEVE_LEVEL:
+            text += (
+                f"**🗡️Thieve** (⏰???, 🔋{THIEVE_STAMINA_COST})\n"
+                "Thieving is a dangerous activity. Someone can notice you and beat you up."
+                " But if you go unnoticed, you will acquire a lot of loot.\n/thieve\n\n"
+            )
     for quest in quests:
         duration = human_time_duration(quest.duration, rounded=False)
         text += f"**{quest.name}** (⏰{duration}, 🔋{quest.stamina})\n{quest.description}\n/quest_{quest.id}\n\n"
@@ -510,14 +564,81 @@ def quest_cmd(payload: str, message: "Message", replies: "Replies") -> None:
 
         quest = get_quest(int(payload))
         if quest:
-            if player.stamina < quest.stamina:
-                replies.add(text="Not enough stamina. Come back after you take a rest.")
-                return
-            player.start_quest(quest)
-            duration = human_time_duration(quest.duration, rounded=False)
-            replies.add(text=f"{quest.parting_msg}. You will be back in {duration}")
+            if validate_stamina(player, quest.stamina, replies):
+                player.start_quest(quest)
+                duration = human_time_duration(quest.duration, rounded=False)
+                replies.add(text=f"{quest.parting_msg}. You will be back in {duration}")
         else:
             replies.add(text="❌ Unknown quest")
+
+
+@simplebot.command(hidden=True)
+def thieve(message: "Message", replies: "Replies") -> None:
+    """Start a thieve quest."""
+    with session_scope() as session:
+        player = get_player(session, message, replies)
+        if (
+            not player
+            or not validate_level(player, THIEVE_LEVEL, replies)
+            or not validate_resting(player, replies, session)
+            or not validate_hp(player, replies)
+            or not validate_stamina(player, THIEVE_STAMINA_COST, replies)
+        ):
+            return
+
+        player.start_thieving()
+        duration = human_time_duration(THIEVE_COOLDOWN, rounded=False)
+        text = (
+            'This is not a fair world so you decide to take "what you deserve" with your own hands.'
+            f" You prepare to thieve in {duration}"
+        )
+        replies.add(text=text)
+
+
+@simplebot.command(hidden=True)
+def interfere(bot: "DeltaBot", message: "Message", replies: "Replies") -> None:
+    """Stop a thief."""
+    with session_scope() as session:
+        player = get_player(session, message, replies)
+        if not player:
+            return
+
+        if player.thief:
+            thief = player.thief
+
+            player.stop_spotting()
+            if not player.sentinel_rank:
+                player.sentinel_rank = SentinelRank(stopped=0)
+            player.sentinel_rank.stopped += 1
+            player_gold = calculate_interfere_gold(player)
+            player.gold += player_gold
+            text = (
+                "You called the town's guards and charged at the thief."
+                f" **{thief.get_name()}** fled but not before receiving one of your blows."
+                " The townsmen gave you some gold coins as reward.\n\n"
+                f"💰Gold: {player_gold:+}\n"
+                # TODO: f"🔥Exp: {player_exp:+}\n"
+            )
+            replies.add(text=text)
+
+            thief_gold = -min(calculate_interfere_gold(thief), thief.gold)
+            thief.gold += thief_gold
+            lost_hp = -thief.reduce_hp(random.randint(50, 80))
+            text = (
+                f"**{player.get_name()}** noticed you and called the town's guards."
+                " You quickly tried to escape but received a blow before losing them."
+            )
+            if thief_gold:
+                text += " While running you accidentally lost some gold coins.\n\n"
+            else:
+                text += "\n\n"
+            if thief_gold:
+                text += f"💰Gold: {thief_gold:+}\n"
+            text += f"❤️HP: {lost_hp:+}\n"
+            # TODO: text += f"🔥Exp: {thief_exp:+}\n" if thief_exp else ""
+            send_message(bot, thief.id, text=text)
+        else:
+            replies.add(text="Too late. Action is not available")
 
 
 @simplebot.command(admin=True)
@@ -552,8 +673,8 @@ def search_player(payload: str, replies: "Replies") -> None:
             replies.add(text=f"❌ No matches for: {payload}")
 
 
-@simplebot.command(admin=True)
-def player_gold(args: list, replies: "Replies") -> None:
+@simplebot.command(name="/player_gold", admin=True)
+def player_gold_cmd(args: list, replies: "Replies") -> None:
     """Add or substract gold to player.
 
     /player_gold 10 +20

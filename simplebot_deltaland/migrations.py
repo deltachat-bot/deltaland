@@ -85,3 +85,12 @@ def migrate3(version: int, database: sqlite3.Connection, logger: Logger) -> None
         with database:
             database.execute("UPDATE game SET version=?", (new_version,))
             database.execute("UPDATE player SET hp=?, max_hp=?", [MAX_HP] * 2)
+
+
+def migrate4(version: int, database: sqlite3.Connection, logger: Logger) -> None:
+    new_version = 4
+    if version < new_version:
+        logger.info(f"Migrating database: v{new_version}")
+        with database:
+            database.execute("UPDATE game SET version=?", (new_version,))
+            database.execute("ALTER TABLE player ADD COLUMN  thief_id INTEGER")

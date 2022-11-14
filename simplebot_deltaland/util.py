@@ -1,6 +1,6 @@
 """Utilities"""
-
 import os
+import random
 import string
 import time
 from typing import Optional
@@ -100,12 +100,26 @@ def validate_resting(
     return False
 
 
+def validate_level(player: Player, required_level: int, replies: Replies) -> bool:
+    if player.level >= required_level:
+        return True
+    replies.add(text="🍼 Your level is too low to perform that action.")
+    return False
+
+
 def validate_gold(player: Player, required_gold: int, replies: Replies) -> bool:
     if player.gold >= required_gold:
         return True
     replies.add(
         text="You don't even have enough gold for a pint of grog.\nWhy don't you get a job?"
     )
+    return False
+
+
+def validate_stamina(player: Player, required_stamina: int, replies: Replies) -> bool:
+    if player.stamina >= required_stamina:
+        return True
+    replies.add(text="Not enough stamina. Come back after you take a rest.")
     return False
 
 
@@ -125,6 +139,16 @@ def get_database_path(bot: DeltaBot) -> str:
     if not os.path.exists(path):
         os.makedirs(path)
     return os.path.join(path, "sqlite.db")
+
+
+def calculate_thieve_gold(player: Player) -> int:
+    min_gold = min(max(player.level, 10), 20)
+    return random.randint(min_gold, min(min_gold * 3, 40))
+
+
+def calculate_interfere_gold(player: Player) -> int:
+    min_gold = min(max(player.level, 5), 10)
+    return random.randint(min_gold, min_gold * 2)
 
 
 def get_battle_result(player: Player) -> str:

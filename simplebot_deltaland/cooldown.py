@@ -32,7 +32,7 @@ from .orm import (
     session_scope,
 )
 from .quests import get_quest
-from .util import get_image, get_players, send_message
+from .util import calculate_thieve_gold, get_image, get_players, send_message
 
 
 def cooldown_loop(bot: DeltaBot) -> None:
@@ -169,8 +169,8 @@ def _process_world_battle(session) -> None:
 
 
 def _process_player_cooldown(bot: DeltaBot, cooldown: Cooldown, session) -> None:
+    player = cooldown.player
     if cooldown.id == StateEnum.REST:
-        player = cooldown.player
         player.stamina += 1
         if player.stamina >= player.max_stamina:
             session.delete(cooldown)
@@ -182,14 +182,59 @@ def _process_player_cooldown(bot: DeltaBot, cooldown: Cooldown, session) -> None
         else:
             cooldown.ends_at = cooldown.ends_at + STAMINA_COOLDOWN
     elif cooldown.id == StateEnum.HEALING:
-        player = cooldown.player
         player.hp += 1
         if player.hp >= player.max_hp:
             session.delete(cooldown)
         else:
             cooldown.ends_at = cooldown.ends_at + LIFEREGEN_COOLDOWN
+    elif cooldown.id == StateEnum.THIEVING:
+        sentinel = (
+            get_players(session)
+            .filter_by(state=StateEnum.REST)
+            .order_by(func.random())
+            .first()
+        )
+        if sentinel:
+            send_message(
+                bot,
+                sentinel.id,
+                text=f"You were wandering around when you noticed **{player.get_name()}**"
+                " trying to rob some townsmen.\n🛑 /interfere",
+            )
+            text = (
+                f"Close to the place you are robbing you spotted warrior **{sentinel.get_name()}**."
+                f" Let's hope **{sentinel.get_name()}** won't notice you."
+            )
+            send_message(bot, player.id, text=text)
+            sentinel.start_spotting(player)
+        else:
+            player.state = StateEnum.REST
+            gold = calculate_thieve_gold(player)
+            player.gold += gold
+            text = (
+                "Nobody noticed you. You successfully stole some loot. You feel great.\n\n"
+                f"💰Gold: {gold:+}\n"
+                # TODO: f"🔥Exp: {exp:+}\n"
+            )
+            send_message(bot, player.id, text=text)
+        session.delete(cooldown)
+    elif cooldown.id == StateEnum.SPOTTED_THIEF:
+        thief = player.thief
+        gold = calculate_thieve_gold(thief)
+        thief.gold += gold
+
+        text = f"You let **{thief.get_name()}** rob the townsmen. We hope you feel terrible."
+        send_message(bot, player.id, text=text)
+
+        text = (
+            f"**{player.get_name()}** was completely clueless. You successfully stole some loot."
+            " You feel great.\n\n"
+            f"💰Gold: {gold:+}\n"
+            # TODO: f"🔥Exp: {exp:+}\n"
+        )
+        send_message(bot, thief.id, text=text)
+        player.stop_spotting()  # removes cooldown from session
     elif cooldown.id == StateEnum.PLAYING_DICE:
-        player = cooldown.player
         session.delete(cooldown)
         player.state = StateEnum.REST
         player.gold += DICE_FEE
