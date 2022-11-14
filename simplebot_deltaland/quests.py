@@ -47,9 +47,9 @@ def get_quest(quest_id: int) -> Optional[Quest]:
 quests = [
     Quest(
         id=1,
-        name="Wander around town",
+        name="👣Wander around the town",
         description="You decide to wander around the town in the hope that something interesting will happen",
-        status_msg="👣 Strolling the town",
+        status_msg="👣 Wandering around the town",
         parting_msg="You start to wander around the town",
         stamina=1,
         duration=60 * 3,
