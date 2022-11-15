@@ -7,9 +7,10 @@ from typing import TYPE_CHECKING
 
 import simplebot
 
-from .consts import DICE_FEE, CombatTactic, StateEnum
+from .consts import DICE_FEE, RANKS_REQ_LEVEL, CombatTactic, StateEnum
 from .cooldown import cooldown_loop
 from .dice import play_dice
+from .experience import required_exp
 from .game import get_next_battle_cooldown, get_next_day_cooldown, init_game
 from .migrations import run_migrations
 from .orm import (
@@ -34,9 +35,11 @@ from .util import (
     get_players,
     human_time_duration,
     is_valid_name,
+    notify_level_up,
     send_message,
     setdefault,
     validate_gold,
+    validate_level,
     validate_resting,
 )
 
@@ -173,12 +176,14 @@ def me_cmd(message: "Message", replies: "Replies") -> None:
             stamina_cooldown = ""
         battle_cooldown = get_next_battle_cooldown(session)
 
+        rankings = "📊 Ranking: /top" if player.level >= RANKS_REQ_LEVEL else ""
         replies.add(
             text=f"""Goblin attack in {battle_cooldown}!
 
             {name}
             🏅Level: {player.level}
             ⚔️Atk: {player.attack}  🛡️Def: {player.defense}
+            🔥Exp: {player.exp}/{required_exp(player.level+1)}
             ❤️HP: {player.hp}/{player.max_hp}
             🔋Stamina: {player.stamina}/{player.max_stamina}{stamina_cooldown}
             💰{player.gold}
@@ -189,7 +194,7 @@ def me_cmd(message: "Message", replies: "Replies") -> None:
             ⚔️ Battle: /battle
             🗺️ Quests: /quests
             🍺 Tavern: /tavern
-            📊 Ranking: /top
+            {rankings}
             """
         )
 
@@ -289,7 +294,8 @@ def report(message: "Message", replies: "Replies") -> None:
 def top(message: "Message", replies: "Replies") -> None:
     """Show the list of scoreboards."""
     with session_scope() as session:
-        if not get_player(session, message, replies):
+        player = get_player(session, message, replies)
+        if not player or not validate_level(player, RANKS_REQ_LEVEL, replies):
             return
 
     rankings = [
@@ -308,7 +314,7 @@ def top1(message: "Message", replies: "Replies") -> None:
     """Most victories in the battlefield."""
     with session_scope() as session:
         player = get_player(session, message, replies)
-        if not player:
+        if not player or not validate_level(player, RANKS_REQ_LEVEL, replies):
             return
 
         is_on_top = False
@@ -338,7 +344,7 @@ def top2(message: "Message", replies: "Replies") -> None:
     """Top gold collectors."""
     with session_scope() as session:
         player = get_player(session, message, replies)
-        if not player:
+        if not player or not validate_level(player, RANKS_REQ_LEVEL, replies):
             return
 
         is_on_top = False
@@ -370,7 +376,7 @@ def top3(message: "Message", replies: "Replies") -> None:
     """Most gold received from the magic cauldron."""
     with session_scope() as session:
         player = get_player(session, message, replies)
-        if not player:
+        if not player or not validate_level(player, RANKS_REQ_LEVEL, replies):
             return
 
         is_on_top = False
@@ -402,7 +408,7 @@ def top4(message: "Message", replies: "Replies") -> None:
     """Most wins in dice this month."""
     with session_scope() as session:
         player = get_player(session, message, replies)
-        if not player:
+        if not player or not validate_level(player, RANKS_REQ_LEVEL, replies):
             return
 
         is_on_top = False
@@ -435,7 +441,7 @@ def top5(message: "Message", replies: "Replies") -> None:
     """Most thieves stopped."""
     with session_scope() as session:
         player = get_player(session, message, replies)
-        if not player:
+        if not player or not validate_level(player, RANKS_REQ_LEVEL, replies):
             return
 
         is_on_top = False
@@ -558,12 +564,15 @@ def interfere(bot: "DeltaBot", message: "Message", replies: "Replies") -> None:
             player.sentinel_rank.stopped += 1
             player_gold = calculate_interfere_gold(player)
             player.gold += player_gold
+            player_exp = random.randint(1, 3)
+            if player.increase_exp(player_exp):  # level up
+                notify_level_up(bot, player)
             text = (
                 "You called the town's guards and charged at the thief."
                 f" **{thief.get_name()}** fled but not before receiving one of your blows."
                 " The townsmen gave you some gold coins as reward.\n\n"
                 f"💰Gold: {player_gold:+}\n"
-                # TODO: f"🔥Exp: {player_exp:+}\n"
+                f"🔥Exp: {player_exp:+}\n"
             )
             replies.add(text=text)
 
@@ -581,7 +590,6 @@ def interfere(bot: "DeltaBot", message: "Message", replies: "Replies") -> None:
             if thief_gold:
                 text += f"💰Gold: {thief_gold:+}\n"
             text += f"❤️HP: {lost_hp:+}\n"
-            # TODO: text += f"🔥Exp: {thief_exp:+}\n" if thief_exp else ""
             send_message(bot, thief.id, text=text)
         else:
             replies.add(text="Too late. Action is not available")

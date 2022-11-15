@@ -12,6 +12,7 @@ from sqlalchemy.orm import backref, relationship, sessionmaker
 from .consts import (
     LIFEREGEN_COOLDOWN,
     MAX_HP,
+    MAX_LEVEL,
     MAX_STAMINA,
     STAMINA_COOLDOWN,
     STARTING_ATTACK,
@@ -21,6 +22,7 @@ from .consts import (
     THIEVE_SPOTTED_COOLDOWN,
     StateEnum,
 )
+from .experience import required_exp
 
 if TYPE_CHECKING:
     from .quests import Quest
@@ -131,6 +133,30 @@ class Player(Base):
     def get_name(self, show_id: bool = False) -> str:
         name = self.name or "Stranger"
         return f"{name} (🆔{self.id})" if show_id else name
+
+    def increase_exp(self, exp: int) -> bool:
+        """Return True if level increased, False otherwise"""
+        if self.level == MAX_LEVEL:
+            return False
+        max_exp = required_exp(self.level + 1)
+        self.exp += exp
+        leveled_up = self.exp >= max_exp
+        while self.exp >= max_exp:
+            exp = self.exp - max_exp
+            self.level += 1
+            max_exp = required_exp(self.level + 1)
+            self.exp = exp
+        if leveled_up:
+            index = -1
+            for i, cooldwn in enumerate(self.cooldowns):
+                if cooldwn.id == StateEnum.REST:
+                    index = i
+                    break
+            if index >= 0:
+                self.cooldowns.pop(index)
+            if self.stamina < self.max_stamina:
+                self.stamina = self.max_stamina
+        return leveled_up
 
     def reduce_stamina(self, stamina: int) -> None:
         self.stamina -= stamina

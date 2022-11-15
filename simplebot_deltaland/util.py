@@ -151,6 +151,22 @@ def calculate_interfere_gold(player: Player) -> int:
     return random.randint(min_gold, min_gold * 2)
 
 
+def notify_level_up(bot: DeltaBot, player: Player) -> None:
+    text = f"🎉 Congratulations! You reached level {player.level}!\n"
+    if player.level == 2:
+        text += (
+            "The higher the level, the more activities become available to you.\n"
+            "- Thieve quests are available at level 3.\n"
+            "- World leaderboards are available at level 3."
+        )
+    elif player.level == 3:
+        text += "- New quest Thieve unlocked!\n- You can learn how other players are doing via the leaderboards at /top"
+        text += (
+            "\n\n**WARNING:** Work in progress, level 3 is the maximum level for now."
+        )
+    send_message(bot, player.id, text=text, filename=get_image("level-up"))
+
+
 def get_battle_result(player: Player) -> str:
     battle = player.battle_report
     tie_msg = (

@@ -12,6 +12,7 @@ from .util import (
     get_player,
     get_players,
     human_time_duration,
+    notify_level_up,
     send_message,
     validate_hp,
     validate_level,
@@ -83,7 +84,8 @@ class Quest:
         text = f"{result.description}\n\n"
         if result.exp:
             text += f"🔥Exp: {result.exp:+}\n"
-            # TODO: increase Exp.
+            if player.increase_exp(result.exp):  # level up
+                notify_level_up(bot, player)
         if result.gold:
             text += f"💰Gold: {result.gold:+}\n"
             player.gold += result.gold
@@ -142,10 +144,13 @@ class ThieveQuest(Quest):
             thief.state = StateEnum.REST
             gold = calculate_thieve_gold(thief)
             thief.gold += gold
+            exp = random.randint(1, 3)
+            if thief.increase_exp(exp):  # level up
+                notify_level_up(bot, thief)
             text = (
                 "Nobody noticed you. You successfully stole some loot. You feel great.\n\n"
                 f"💰Gold: {gold:+}\n"
-                # TODO: f"🔥Exp: {exp:+}\n"
+                f"🔥Exp: {exp:+}\n"
             )
             send_message(bot, thief.id, text=text)
 
@@ -205,13 +210,15 @@ class TownQuest(Quest):
             "You helped a peasant to fix his wagon. He gave you some fruits, you sold them in the local market",
             "You helped a magician to gather some rats for his experiments",
             "As you were strolling you collided with a stranger who turned out to be a thief running from the guards, you received a reward for (accidentally) stopping the thief",
-            "As you were trolling you came across a noble that asked you to do some errands for him",
+            "As you were strolling you came across a nobleman who asked you to run some errands",
             "In an alley someone tried to rob you, but you rob him instead",
             "You helped an artisan with his work",
-            "An old retired knight asked you to do some errands for him",
-            "A knight paid you to bath and feed his horse",
+            "An old retired knight asked you to run some errands",
+            "A knight paid you to bathe and feed his horse",
             "You helped transporting weapons to the armory",
             "You worked as a helper in the inn's kitchen",
+            "You found a job cleaning the royal stables",
+            "As you wandered around, you saw a nobleman in a horse-drawn carriage, one of the carriage's wheels was broken. You helped repair the carriage and received some gold coins",
         ]
         desc = random.choice(descriptions)
         if desc == descriptions[0]:  # one coin

@@ -32,7 +32,13 @@ from .orm import (
     session_scope,
 )
 from .quests import get_quest
-from .util import calculate_thieve_gold, get_image, get_players, send_message
+from .util import (
+    calculate_thieve_gold,
+    get_image,
+    get_players,
+    notify_level_up,
+    send_message,
+)
 
 
 def cooldown_loop(bot: DeltaBot) -> None:
@@ -63,7 +69,7 @@ def _check_cooldows(bot: DeltaBot) -> None:
 
 def _process_world_cooldown(bot: DeltaBot, cooldown: Cooldown, session) -> None:
     if cooldown.id == StateEnum.BATTLE:
-        _process_world_battle(session)
+        _process_world_battle(bot, session)
         cooldown.ends_at = get_next_battle_timestamp(cooldown.ends_at)
     elif cooldown.id == StateEnum.DAY:
         _process_world_cauldron(bot, session)
@@ -101,11 +107,12 @@ def _process_world_cauldron(bot, session) -> None:
             player.cauldron_rank.gold += gift
 
 
-def _process_world_battle(session) -> None:
+def _process_world_battle(bot, session) -> None:
     for player in get_players(session):
         victory = False
         monster_tactic = random.choice(list(CombatTactic))
         gold = random.randint((player.level + 1) // 2, player.level + 1)
+        base_exp = random.randint((player.level + 1) // 2, player.level + 1)
         hit_points = player.max_hp // 3
         if player.battle_tactic:
             tactic = player.battle_tactic.tactic
@@ -115,51 +122,55 @@ def _process_world_battle(session) -> None:
         battle = BattleReport(
             tactic=tactic, monster_tactic=monster_tactic, exp=0, gold=0, hp=0
         )
+        exp = 0
         if tactic == CombatTactic.HIT:
             if monster_tactic == CombatTactic.HIT:
-                # TODO: +50% Exp
+                exp = max(base_exp // 2, 1)  # +50% Exp
                 battle.hp = -player.reduce_hp(hit_points // 2)  # -50% hit_points
             elif monster_tactic == CombatTactic.FEINT:
                 victory = True
-                # TODO: +100% Exp
+                exp = base_exp  # +100% Exp
                 battle.gold = gold
                 player.gold += battle.gold
             else:  # monster_tactic == CombatTactic.PARRY
-                # TODO: +25% Exp
+                exp = max(base_exp // 4, 1)  # +25% Exp
                 battle.gold = -min(player.gold, gold)
                 player.gold += battle.gold
                 battle.hp = -player.reduce_hp(hit_points)  # -100% hit_points
         elif tactic == CombatTactic.FEINT:
             if monster_tactic == CombatTactic.HIT:
-                # TODO: +25% Exp
+                exp = max(base_exp // 4, 1)  # +25% Exp
                 battle.gold = -min(player.gold, gold)
                 player.gold += battle.gold
                 battle.hp = -player.reduce_hp(hit_points)  # -100% hit_points
             elif monster_tactic == CombatTactic.FEINT:
-                # TODO: +50% Exp
+                exp = max(base_exp // 2, 1)  # +50% Exp
                 battle.hp = -player.reduce_hp(hit_points // 2)  # -50% hit_points
             else:  # monster_tactic == CombatTactic.PARRY
                 victory = True
-                # TODO: +100% Exp
+                exp = base_exp  # +100% Exp
                 battle.gold = gold
                 player.gold += battle.gold
         elif tactic == CombatTactic.PARRY:
             if monster_tactic == CombatTactic.HIT:
                 victory = True
-                # TODO: +100% Exp
+                exp = base_exp  # +100% Exp
                 battle.gold = gold
                 player.gold += battle.gold
             elif monster_tactic == CombatTactic.FEINT:
-                # TODO: +25% Exp
+                exp = max(base_exp // 4, 1)  # +25% Exp
                 battle.gold = -min(player.gold, gold)
                 player.gold += battle.gold
                 battle.hp = -player.reduce_hp(hit_points)  # -100% hit_points
             else:  # monster_tactic == CombatTactic.PARRY
-                pass  # TODO: +25% Exp
+                exp = max(base_exp // 4, 1)  # +25% Exp
         else:  # didn't defend the castle
             battle.gold = -min(player.gold, gold)
             player.gold += battle.gold
             battle.hp = -player.reduce_hp(hit_points)  # -100% hit_points
+
+        if exp and player.increase_exp(exp):  # level up
+            notify_level_up(bot, player)
 
         player.battle_report = battle
         if victory:
@@ -171,7 +182,6 @@ def _process_world_battle(session) -> None:
 def _process_player_cooldown(bot: DeltaBot, cooldown: Cooldown, session) -> None:
     player = cooldown.player
     if cooldown.id == StateEnum.REST:
-        player.stamina += 1
         if player.stamina >= player.max_stamina:
             session.delete(cooldown)
             send_message(
@@ -180,6 +190,7 @@ def _process_player_cooldown(bot: DeltaBot, cooldown: Cooldown, session) -> None
                 text="Stamina restored. You are ready for more adventures!",
             )
         else:
+            player.stamina += 1
             cooldown.ends_at = cooldown.ends_at + STAMINA_COOLDOWN
     elif cooldown.id == StateEnum.HEALING:
         if player.hp >= player.max_hp:
@@ -191,6 +202,9 @@ def _process_player_cooldown(bot: DeltaBot, cooldown: Cooldown, session) -> None
         thief = player.thief
         gold = calculate_thieve_gold(thief)
         thief.gold += gold
+        exp = random.randint(1, 3)
+        if thief.increase_exp(exp):  # level up
+            notify_level_up(bot, thief)
 
         text = f"You let **{thief.get_name()}** rob the townsmen. We hope you feel terrible."
         send_message(bot, player.id, text=text)
@@ -199,7 +213,7 @@ def _process_player_cooldown(bot: DeltaBot, cooldown: Cooldown, session) -> None
             f"**{player.get_name()}** was completely clueless. You successfully stole some loot."
             " You feel great.\n\n"
             f"💰Gold: {gold:+}\n"
-            # TODO: f"🔥Exp: {exp:+}\n"
+            f"🔥Exp: {exp:+}\n"
         )
         send_message(bot, thief.id, text=text)
         player.stop_spotting()  # removes cooldown from session
