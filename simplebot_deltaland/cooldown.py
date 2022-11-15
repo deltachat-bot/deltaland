@@ -182,42 +182,11 @@ def _process_player_cooldown(bot: DeltaBot, cooldown: Cooldown, session) -> None
         else:
             cooldown.ends_at = cooldown.ends_at + STAMINA_COOLDOWN
     elif cooldown.id == StateEnum.HEALING:
-        player.hp += 1
         if player.hp >= player.max_hp:
             session.delete(cooldown)
         else:
+            player.hp += 1
             cooldown.ends_at = cooldown.ends_at + LIFEREGEN_COOLDOWN
-    elif cooldown.id == StateEnum.THIEVING:
-        sentinel = (
-            get_players(session)
-            .filter_by(state=StateEnum.REST)
-            .order_by(func.random())
-            .first()
-        )
-        if sentinel:
-            send_message(
-                bot,
-                sentinel.id,
-                text=f"You were wandering around when you noticed **{player.get_name()}**"
-                " trying to rob some townsmen.\n🛑 /interfere",
-            )
-            text = (
-                f"Close to the place you are robbing you spotted warrior **{sentinel.get_name()}**."
-                f" Let's hope **{sentinel.get_name()}** won't notice you."
-            )
-            send_message(bot, player.id, text=text)
-            sentinel.start_spotting(player)
-        else:
-            player.state = StateEnum.REST
-            gold = calculate_thieve_gold(player)
-            player.gold += gold
-            text = (
-                "Nobody noticed you. You successfully stole some loot. You feel great.\n\n"
-                f"💰Gold: {gold:+}\n"
-                # TODO: f"🔥Exp: {exp:+}\n"
-            )
-            send_message(bot, player.id, text=text)
-        session.delete(cooldown)
     elif cooldown.id == StateEnum.SPOTTED_THIEF:
         thief = player.thief
         gold = calculate_thieve_gold(thief)
@@ -240,20 +209,9 @@ def _process_player_cooldown(bot: DeltaBot, cooldown: Cooldown, session) -> None
         player.gold += DICE_FEE
         send_message(bot, player.id, text="No one sat down next to you =/")
     else:
-        _process_quest_cooldown(bot, cooldown, session)
-
-
-def _process_quest_cooldown(bot: DeltaBot, cooldown: Cooldown, session) -> None:
-    quest = get_quest(cooldown.id)
-    if quest:
-        player = cooldown.player
-        reward = quest.get_reward(player)
-        text = reward.description
-        if reward.gold:
-            text += f"\n\nYou received: {reward.gold:+}💰"
-            player.gold += reward.gold
-        player.state = StateEnum.REST
-        send_message(bot, cooldown.player_id, text=text)
-    else:
-        bot.logger.warning(f"Unknown quest: {cooldown.id}")
-    session.delete(cooldown)
+        quest = get_quest(cooldown.id)
+        if quest:
+            quest.end(bot, cooldown, session)
+        else:
+            bot.logger.warning(f"Unknown quest: {cooldown.id}")
+        session.delete(cooldown)

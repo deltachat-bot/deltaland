@@ -7,14 +7,7 @@ from typing import TYPE_CHECKING
 
 import simplebot
 
-from .consts import (
-    DICE_FEE,
-    THIEVE_COOLDOWN,
-    THIEVE_LEVEL,
-    THIEVE_STAMINA_COST,
-    CombatTactic,
-    StateEnum,
-)
+from .consts import DICE_FEE, CombatTactic, StateEnum
 from .cooldown import cooldown_loop
 from .dice import play_dice
 from .game import get_next_battle_cooldown, get_next_day_cooldown, init_game
@@ -44,10 +37,7 @@ from .util import (
     send_message,
     setdefault,
     validate_gold,
-    validate_hp,
-    validate_level,
     validate_resting,
-    validate_stamina,
 )
 
 if TYPE_CHECKING:
@@ -58,6 +48,10 @@ if TYPE_CHECKING:
 @simplebot.hookimpl
 def deltabot_init(bot: "DeltaBot") -> None:
     setdefault(bot, "max_players", "0")
+    for quest in quests:
+        bot.commands.register(
+            quest.command, name=quest.command_name, help=quest.description, hidden=True
+        )
 
 
 @simplebot.hookimpl
@@ -149,8 +143,6 @@ def me_cmd(message: "Message", replies: "Replies") -> None:
                 state = "🛌 Resting"
         elif player.state == StateEnum.PLAYING_DICE:
             state = "🎲 Rolling the dice"
-        elif player.state == StateEnum.THIEVING:
-            state = "🗡️ Thieving in the town"
         elif player.state == StateEnum.SPOTTED_THIEF:
             state = "👀 noticed thief"
         else:
@@ -536,63 +528,17 @@ def quests_cmd(message: "Message", replies: "Replies") -> None:
             return
 
         text = ""
-        if player.level >= THIEVE_LEVEL:
+        for quest in quests:
+            if quest.required_level > player.level:
+                continue
+            duration = human_time_duration(quest.duration, rounded=False)
             text += (
-                f"**🗡️Thieve** (⏰???, 🔋{THIEVE_STAMINA_COST})\n"
-                "Thieving is a dangerous activity. Someone can notice you and beat you up."
-                " But if you go unnoticed, you will acquire a lot of loot.\n/thieve\n\n"
+                f"**{quest.name}** (⏰{duration}, 🔋{quest.stamina_cost})\n"
+                f"{quest.description}\n{quest.command_name}\n\n"
             )
-    for quest in quests:
-        duration = human_time_duration(quest.duration, rounded=False)
-        text += f"**{quest.name}** (⏰{duration}, 🔋{quest.stamina})\n{quest.description}\n/quest_{quest.id}\n\n"
-    if not text:
-        text = "No available quests at the moment :("
+        if not text:
+            text = "No available quests at the moment."
     replies.add(text=text)
-
-
-@simplebot.command(name="/quest", hidden=True)
-def quest_cmd(payload: str, message: "Message", replies: "Replies") -> None:
-    """Start a quest."""
-    with session_scope() as session:
-        player = get_player(session, message, replies)
-        if (
-            not player
-            or not validate_resting(player, replies, session)
-            or not validate_hp(player, replies)
-        ):
-            return
-
-        quest = get_quest(int(payload))
-        if quest:
-            if validate_stamina(player, quest.stamina, replies):
-                player.start_quest(quest)
-                duration = human_time_duration(quest.duration, rounded=False)
-                replies.add(text=f"{quest.parting_msg}. You will be back in {duration}")
-        else:
-            replies.add(text="❌ Unknown quest")
-
-
-@simplebot.command(hidden=True)
-def thieve(message: "Message", replies: "Replies") -> None:
-    """Start a thieve quest."""
-    with session_scope() as session:
-        player = get_player(session, message, replies)
-        if (
-            not player
-            or not validate_level(player, THIEVE_LEVEL, replies)
-            or not validate_resting(player, replies, session)
-            or not validate_hp(player, replies)
-            or not validate_stamina(player, THIEVE_STAMINA_COST, replies)
-        ):
-            return
-
-        player.start_thieving()
-        duration = human_time_duration(THIEVE_COOLDOWN, rounded=False)
-        text = (
-            'This is not a fair world so you decide to take "what you deserve" with your own hands.'
-            f" You prepare to thieve in {duration}"
-        )
-        replies.add(text=text)
 
 
 @simplebot.command(hidden=True)
@@ -626,7 +572,7 @@ def interfere(bot: "DeltaBot", message: "Message", replies: "Replies") -> None:
             lost_hp = -thief.reduce_hp(random.randint(50, 80))
             text = (
                 f"**{player.get_name()}** noticed you and called the town's guards."
-                " You quickly tried to escape but received a blow before losing them."
+                " You tried to flee but received some hits before managing to escape."
             )
             if thief_gold:
                 text += " While running you accidentally lost some gold coins.\n\n"

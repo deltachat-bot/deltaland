@@ -12,9 +12,6 @@ STARTING_GOLD = 0
 MIN_CAULDRON_GIFT = 20
 MAX_CAULDRON_GIFT = 100
 
-THIEVE_STAMINA_COST = 2
-THIEVE_LEVEL = 3
-THIEVE_COOLDOWN = 60 * 2
 THIEVE_SPOTTED_COOLDOWN = 60 * 3
 
 MAX_STAMINA = 5
@@ -32,8 +29,7 @@ class StateEnum(IntEnum):
     REST = 0
     PLAYING_DICE = -1
     HEALING = -2
-    THIEVING = -3
-    SPOTTED_THIEF = -4
+    SPOTTED_THIEF = -3
 
     # World state
     DAY = -100
@@ -47,3 +43,9 @@ class CombatTactic(IntEnum):
     HIT = 1
     FEINT = 2
     PARRY = 3
+
+
+class Quality(IntEnum):
+    BAD = 0
+    NORMAL = 1
+    GOOD = 2

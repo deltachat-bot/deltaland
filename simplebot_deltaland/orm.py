@@ -18,9 +18,7 @@ from .consts import (
     STARTING_DEFENSE,
     STARTING_GOLD,
     STARTING_LEVEL,
-    THIEVE_COOLDOWN,
     THIEVE_SPOTTED_COOLDOWN,
-    THIEVE_STAMINA_COST,
     StateEnum,
 )
 
@@ -170,16 +168,7 @@ class Player(Base):
         self.cooldowns.append(
             Cooldown(id=quest.id, ends_at=time.time() + quest.duration)  # noqa
         )
-        self.reduce_stamina(quest.stamina)
-
-    def start_thieving(self) -> None:
-        self.state = StateEnum.THIEVING
-        self.cooldowns.append(
-            Cooldown(  # noqa
-                id=StateEnum.THIEVING, ends_at=time.time() + THIEVE_COOLDOWN
-            )
-        )
-        self.reduce_stamina(THIEVE_STAMINA_COST)
+        self.reduce_stamina(quest.stamina_cost)
 
     def start_spotting(self, thief: "Player") -> None:
         self.state = StateEnum.SPOTTED_THIEF
