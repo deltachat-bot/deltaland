@@ -207,7 +207,7 @@ class TownQuest(Quest):
             "In a dark alley you saw a thief threatening an old man, you helped him and shared the loot",
             'You saw some rats in an alley, you killed them and sold their pelt as "rabbit pelt" to a local merchant',
             "You ran some errands for a butcher, he paid you with a piece of bacon, you sold it to a fat guy for some gold",
-            "You helped a peasant to fix his wagon. He gave you some fruits, you sold them in the local market",
+            "You helped a peasant to fix his wagon loaded with fruit that had a broken wheel. He gave you some fruits, you sold them in the local market",
             "You helped a magician to gather some rats for his experiments",
             "As you were strolling you collided with a stranger who turned out to be a thief running from the guards, you received a reward for (accidentally) stopping the thief",
             "As you were strolling you came across a nobleman who asked you to run some errands",
@@ -219,6 +219,7 @@ class TownQuest(Quest):
             "You worked as a helper in the inn's kitchen",
             "You found a job cleaning the royal stables",
             "As you wandered around, you saw a nobleman in a horse-drawn carriage, one of the carriage's wheels was broken. You helped repair the carriage and received some gold coins",
+            "A peddler weighed down with basic supplies asked for your help to transport the supplies to the market",
         ]
         desc = random.choice(descriptions)
         if desc == descriptions[0]:  # one coin
