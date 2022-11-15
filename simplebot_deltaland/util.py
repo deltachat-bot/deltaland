@@ -124,7 +124,7 @@ def validate_stamina(player: Player, required_stamina: int, replies: Replies) ->
 
 
 def validate_hp(player: Player, replies: Replies) -> bool:
-    if player.hp >= 100:
+    if player.hp >= min(player.max_hp / 4, 100):
         return True
     replies.add(text="You need to heal your wounds and recover, come back later.")
     return False
