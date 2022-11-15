@@ -181,7 +181,7 @@ class TownQuest(Quest):
 
     def get_bad_result(self) -> QuestResult:
         descriptions = [
-            "You helped a blacksmith with the chores, one of your fingers got hurt with a hammer",  # must be first item
+            "You helped a blacksmith with the chores. One of your fingers got hurt with a hammer",  # must be first item
             "You stepped on a pile of poop, lucky day :/",
             "You came back empty handed and bored",
             "A wagon passed near you and splashed water from a puddle, your clothes are wet and stinky",
@@ -234,7 +234,7 @@ class TownQuest(Quest):
             "You gave a hand cleaning the inn. They allowed you to take a snap in one of their comfortable beds",  # must be first item
             "As you were walking in the crowded market you saw some gold coins falling from the pocket of a beautiful lady, you politely picked the coins and disappeared in the crowd",
             'A man wearing elegant clothes asked you to deliver a golden small box to a distant village to someone called "Thaernd Orarani", you accepted the quest, after pretending to part away you sold the loot to a local merchant',
-            'A magician asked for your assistance to organize his "library", a room full of old spell books. After finishing, you politely refused to receive any payment and went away... to sell a grimoire you found in your pocket',
+            'A magician asked for your assistance to organize his "library", a room full of old spell books laying all over the floor. After finishing, you politely refused to receive any payment and went away... to sell a grimoire you found in your pocket',
             "Wandering around you accidentally kicked an old pot near other trash, the pot broke and inside you found some gold coins! Later you came back the same way and saw a beggar screaming over the pieces of a broken pot, weird",
             "You came across a magician asking for help to brew a potion. You helped him to brew the potion, then he drunk it and became a talking frog, you sold the frog to a local pet shop",
         ]
