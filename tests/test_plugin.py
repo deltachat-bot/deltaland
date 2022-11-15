@@ -46,45 +46,30 @@ class TestPlugin:
         msg = mocker.get_one_reply("/me")
         assert "❌" not in msg.text
 
-    def test_top(self, mocker) -> None:
-        msg = mocker.get_one_reply("/top")
-        assert "❌" in msg.text
+    def test_battle_commands(self, mocker) -> None:
+        for cmd in ["/battle", "/hit", "/feint", "/parry", "/report"]:
+            msg = mocker.get_one_reply(cmd)
+            assert "❌" in msg.text
 
-        msg = mocker.get_one_reply("/start")
-        assert "❌" not in msg.text
+            msg = mocker.get_one_reply("/start")
+            assert "❌" not in msg.text
 
-        msg = mocker.get_one_reply("/top")
-        assert "❌" not in msg.text
+            msg = mocker.get_one_reply(cmd)
+            assert "❌" not in msg.text
 
-    def test_top1(self, mocker) -> None:
-        msg = mocker.get_one_reply("/top1")
-        assert "❌" in msg.text
+    def test_tops(self, mocker) -> None:
+        for i in range(6):
+            i = i or ""
+            cmd = "/top{i}"
 
-        msg = mocker.get_one_reply("/start")
-        assert "❌" not in msg.text
+            msg = mocker.get_one_reply(cmd)
+            assert "❌" in msg.text
 
-        msg = mocker.get_one_reply("/top1")
-        assert "❌" not in msg.text
+            msg = mocker.get_one_reply("/start")
+            assert "❌" not in msg.text
 
-    def test_top2(self, mocker) -> None:
-        msg = mocker.get_one_reply("/top2")
-        assert "❌" in msg.text
-
-        msg = mocker.get_one_reply("/start")
-        assert "❌" not in msg.text
-
-        msg = mocker.get_one_reply("/top2")
-        assert "❌" not in msg.text
-
-    def test_top3(self, mocker) -> None:
-        msg = mocker.get_one_reply("/top3")
-        assert "❌" in msg.text
-
-        msg = mocker.get_one_reply("/start")
-        assert "❌" not in msg.text
-
-        msg = mocker.get_one_reply("/top3")
-        assert "❌" not in msg.text
+            msg = mocker.get_one_reply(cmd)
+            assert "❌" not in msg.text
 
     def test_tavern(self, mocker) -> None:
         msg = mocker.get_one_reply("/tavern")
@@ -130,15 +115,32 @@ class TestPlugin:
         msg = mocker.get_one_reply("/quests")
         assert "❌" not in msg.text
 
-    def test_quest(self, mocker) -> None:
-        msg = mocker.get_one_reply("/quest_1")
+    def test_wander(self, mocker) -> None:
+        msg = mocker.get_one_reply("/wander")
         assert "❌" in msg.text
 
         msg = mocker.get_one_reply("/start")
         assert "❌" not in msg.text
 
-        msg = mocker.get_one_reply("/quest_0")
+        msg = mocker.get_one_reply("/wander")
+        assert "❌" not in msg.text
+
+    def test_thieve(self, mocker) -> None:
+        msg = mocker.get_one_reply("/thieve")
         assert "❌" in msg.text
 
-        msg = mocker.get_one_reply("/quest_1")
+        msg = mocker.get_one_reply("/start")
+        assert "❌" not in msg.text
+
+        msg = mocker.get_one_reply("/thieve")
+        assert "❌" not in msg.text
+
+    def test_interfere(self, mocker) -> None:
+        msg = mocker.get_one_reply("/interfere")
+        assert "❌" in msg.text
+
+        msg = mocker.get_one_reply("/start")
+        assert "❌" not in msg.text
+
+        msg = mocker.get_one_reply("/interfere")
         assert "❌" not in msg.text
