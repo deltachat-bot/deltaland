@@ -562,7 +562,7 @@ def interfere(bot: "DeltaBot", message: "Message", replies: "Replies") -> None:
             if not player.sentinel_rank:
                 player.sentinel_rank = SentinelRank(stopped=0)
             player.sentinel_rank.stopped += 1
-            player_gold = calculate_interfere_gold(player)
+            player_gold = random.randint(1, 2)
             player.gold += player_gold
             player_exp = random.randint(1, 3)
             if player.increase_exp(player_exp):  # level up
