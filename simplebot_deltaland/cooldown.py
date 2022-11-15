@@ -122,54 +122,53 @@ def _process_world_battle(bot, session) -> None:
         battle = BattleReport(
             tactic=tactic, monster_tactic=monster_tactic, exp=0, gold=0, hp=0
         )
-        exp = 0
         if tactic == CombatTactic.HIT:
             if monster_tactic == CombatTactic.HIT:
-                exp = max(base_exp // 2, 1)  # +50% Exp
+                battle.exp = max(base_exp // 2, 1)  # +50% Exp
                 battle.hp = -player.reduce_hp(hit_points // 2)  # -50% hit_points
             elif monster_tactic == CombatTactic.FEINT:
                 victory = True
-                exp = base_exp  # +100% Exp
+                battle.exp = base_exp  # +100% Exp
                 battle.gold = gold
                 player.gold += battle.gold
             else:  # monster_tactic == CombatTactic.PARRY
-                exp = max(base_exp // 4, 1)  # +25% Exp
+                battle.exp = max(base_exp // 4, 1)  # +25% Exp
                 battle.gold = -min(player.gold, gold)
                 player.gold += battle.gold
                 battle.hp = -player.reduce_hp(hit_points)  # -100% hit_points
         elif tactic == CombatTactic.FEINT:
             if monster_tactic == CombatTactic.HIT:
-                exp = max(base_exp // 4, 1)  # +25% Exp
+                battle.exp = max(base_exp // 4, 1)  # +25% Exp
                 battle.gold = -min(player.gold, gold)
                 player.gold += battle.gold
                 battle.hp = -player.reduce_hp(hit_points)  # -100% hit_points
             elif monster_tactic == CombatTactic.FEINT:
-                exp = max(base_exp // 2, 1)  # +50% Exp
+                battle.exp = max(base_exp // 2, 1)  # +50% Exp
                 battle.hp = -player.reduce_hp(hit_points // 2)  # -50% hit_points
             else:  # monster_tactic == CombatTactic.PARRY
                 victory = True
-                exp = base_exp  # +100% Exp
+                battle.exp = base_exp  # +100% Exp
                 battle.gold = gold
                 player.gold += battle.gold
         elif tactic == CombatTactic.PARRY:
             if monster_tactic == CombatTactic.HIT:
                 victory = True
-                exp = base_exp  # +100% Exp
+                battle.exp = base_exp  # +100% Exp
                 battle.gold = gold
                 player.gold += battle.gold
             elif monster_tactic == CombatTactic.FEINT:
-                exp = max(base_exp // 4, 1)  # +25% Exp
+                battle.exp = max(base_exp // 4, 1)  # +25% Exp
                 battle.gold = -min(player.gold, gold)
                 player.gold += battle.gold
                 battle.hp = -player.reduce_hp(hit_points)  # -100% hit_points
             else:  # monster_tactic == CombatTactic.PARRY
-                exp = max(base_exp // 4, 1)  # +25% Exp
+                battle.exp = max(base_exp // 4, 1)  # +25% Exp
         else:  # didn't defend the castle
             battle.gold = -min(player.gold, gold)
             player.gold += battle.gold
             battle.hp = -player.reduce_hp(hit_points)  # -100% hit_points
 
-        if exp and player.increase_exp(exp):  # level up
+        if battle.exp and player.increase_exp(battle.exp):  # level up
             notify_level_up(bot, player)
 
         player.battle_report = battle
