@@ -1,2 +1,2 @@
-simplebot>=4.0.0
+simplebot>=4.1.0
 SQLAlchemy>=1.4.42
