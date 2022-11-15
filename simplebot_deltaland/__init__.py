@@ -596,12 +596,12 @@ def interfere(bot: "DeltaBot", message: "Message", replies: "Replies") -> None:
 
 
 @simplebot.command(admin=True)
-def delete_player(payload: str, replies: "Replies") -> None:
+def delete_player(bot: "DeltaBot", payload: str, replies: "Replies") -> None:
     """Delete a player account.
 
     /delete_player 10
     """
-    player_id = int(payload)
+    player_id = bot.get_contact(payload).id if "@" in payload else int(payload)
     with session_scope() as session:
         player = session.query(Player).filter_by(id=player_id).first()
         if player:
