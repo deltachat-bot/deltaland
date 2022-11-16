@@ -181,6 +181,8 @@ def _process_world_battle(bot, session) -> None:
 def _process_player_cooldown(bot: DeltaBot, cooldown: Cooldown, session) -> None:
     player = cooldown.player
     if cooldown.id == StateEnum.REST:
+        if player.stamina < player.max_stamina:
+            player.stamina += 1
         if player.stamina >= player.max_stamina:
             session.delete(cooldown)
             send_message(
@@ -189,13 +191,13 @@ def _process_player_cooldown(bot: DeltaBot, cooldown: Cooldown, session) -> None
                 text="Stamina restored. You are ready for more adventures!",
             )
         else:
-            player.stamina += 1
             cooldown.ends_at = cooldown.ends_at + STAMINA_COOLDOWN
     elif cooldown.id == StateEnum.HEALING:
+        if player.hp < player.max_hp:
+            player.hp += 1
         if player.hp >= player.max_hp:
             session.delete(cooldown)
         else:
-            player.hp += 1
             cooldown.ends_at = cooldown.ends_at + LIFEREGEN_COOLDOWN
     elif cooldown.id == StateEnum.SPOTTED_THIEF:
         thief = player.thief
