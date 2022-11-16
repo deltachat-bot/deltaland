@@ -612,15 +612,20 @@ def delete_player(bot: "DeltaBot", payload: str, replies: "Replies") -> None:
 
 
 @simplebot.command(admin=True)
-def search_player(payload: str, replies: "Replies") -> None:
+def search_player(bot: "DeltaBot", payload: str, replies: "Replies") -> None:
     """Delete a player account.
 
     /delete_player 10
     """
     with session_scope() as session:
         text = ""
-        for player in session.query(Player).filter_by(name=payload):
-            text += f"ID: {player.id}\n"
+        if payload:
+            query = session.query(Player).filter(Player.name.ilike(f"%{payload}%"))
+        else:
+            query = session.query(Player).filter_by(name="")
+        for player in query:
+            addr = bot.get_contact(player.id).addr
+            text += f"**{player.get_name()}**\n🆔 {player.id}\n📫 {addr}\n\n"
         if text:
             replies.add(text=f"Search result for {payload!r}:\n\n" + text)
         else:
