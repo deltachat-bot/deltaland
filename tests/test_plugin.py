@@ -58,7 +58,7 @@ class TestPlugin:
         self._basic_test("/report", mocker)
 
     def test_tops(self, mocker) -> None:
-        for i in range(7):
+        for i in range(6):
             i = i or ""
             self._basic_test(f"/top{i}", mocker, addr=f"player{i}@example.com")
 
