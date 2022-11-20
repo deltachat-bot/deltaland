@@ -100,3 +100,6 @@ class TestPlugin:
 
     def test_off(self, mocker) -> None:
         self._basic_test("/off 1", mocker)
+
+    def test_castle(self, mocker) -> None:
+        self._basic_test("/castle", mocker)

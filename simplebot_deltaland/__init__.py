@@ -100,14 +100,14 @@ def start(bot: "DeltaBot", message: "Message", replies: "Replies") -> None:
     lines = [
         "Welcome to Deltaland, a fantasy world full of adventures and fun!",
         "",
-        "You have just arrived to the castle town. It is a small but lively community surrounded by lush forest and rolling hills.",
+        "You have just arrived to the **Gundor Castle**. It is a lively community surrounded by lush forest and rolling hills.",
         "",
-        "To set your name in the game, type in /name followed by your name, for example:",
-        "/name John",
+        "To set your in-game name, type in /name followed by your name, for example:",
+        "/name Thenali Ldulir",
         "",
         "To see your status send: /me",
     ]
-    replies.add(text="\n".join(lines), filename=get_image("castle"))
+    replies.add(text="\n".join(lines), filename=get_image("splash"))
 
 
 @simplebot.command(name="/name", hidden=True)
@@ -141,8 +141,7 @@ def me_cmd(message: "Message", replies: "Replies") -> None:
 
         now = time.time()
         name = player.get_name()
-        if not player.name:
-            name += " (set name with /name)"
+        name_hint = " (set name with /name)" if not player.name else ""
         if player.state == StateEnum.REST:
             if player.battle_tactic:
                 state = "🏰 Defending the castle"
@@ -193,7 +192,7 @@ def me_cmd(message: "Message", replies: "Replies") -> None:
         replies.add(
             text=f"""Goblin attack in {battle_cooldown}!
 
-            **{name}**
+            **{name}**{name_hint}
             🏅Level: {player.level}
             ⚔️Atk: {player.attack + atk}  🛡️Def: {player.defense + def_}
             🔥Exp: {player.exp}/{required_exp(player.level+1)}
@@ -207,9 +206,8 @@ def me_cmd(message: "Message", replies: "Replies") -> None:
             State:
             {state}
 
-            🏚️ Shop: /shop
-            🍺 Tavern: /tavern
             🗺️ Quests: /quests
+            🏰Castle: /castle
             ⚔️ Battle: /battle
             {rankings}
             """
@@ -484,6 +482,24 @@ def top5(message: "Message", replies: "Replies") -> None:
 
 
 @simplebot.command(hidden=True)
+def castle(message: "Message", replies: "Replies") -> None:
+    """Show options available inside the castle."""
+    with session_scope() as session:
+        player = Player.from_message(message, session, replies)
+        if not player or not player.validate_resting(session, replies):
+            return
+        player_count = session.query(Player.id).count()
+
+    text = f"""**🏰 Gundor Castle**
+
+    👥 Castle population: {player_count}
+    🏚️ Shop: /shop
+    🍺 Tavern: /tavern
+    """
+    replies.add(text=text, filename=get_image("castle"))
+
+
+@simplebot.command(hidden=True)
 def tavern(message: "Message", replies: "Replies") -> None:
     """Go to the tavern."""
     with session_scope() as session:
@@ -661,7 +677,7 @@ def shop(message: "Message", replies: "Replies") -> None:
             base = session.query(BaseItem).filter_by(id=item_id).first()
             text += f"**{base}**\n{price}💰\n/buy_{base.id:03}\n\n"
 
-        text += "\n💰 To sell items: /sell"
+        text += "\n---------\n💰To sell items: /sell"
         replies.add(text=text, filename=get_image("shop"))
 
 

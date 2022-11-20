@@ -7,6 +7,8 @@
 - add /on and /off commands to equip and unequip items
 - fix bug in /me when player was being noticed while thieving
 - rename administration commands
+- add new welcome image
+- move tavern and shop from /me to /castle section
 
 ## v0.1.0
 
