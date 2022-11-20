@@ -210,7 +210,7 @@ def me_cmd(message: "Message", replies: "Replies") -> None:
             {state}
 
             🗺️ Quests: /quests
-            🏰Castle: /castle
+            🏰 Castle: /castle
             ⚔️ Battle: /battle
             {rankings}
             """
