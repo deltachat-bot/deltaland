@@ -868,7 +868,8 @@ def player_gold_cmd(args: list, replies: "Replies") -> None:
 
     /playerGold 10 +20
     """
-    player_id, gold = args[0], _parse_number(args[1])
+    player_id = bot.get_contact(args[0]).id if "@" in args[0] else int(args[0])
+    gold = _parse_number(args[1])
     with session_scope() as session:
         player = session.query(Player).filter_by(id=player_id).first()
         if player:
