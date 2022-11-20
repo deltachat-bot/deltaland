@@ -10,6 +10,7 @@ import simplebot
 from .consts import (
     DICE_FEE,
     RANKS_REQ_LEVEL,
+    RESET_NAME_COST,
     CombatTactic,
     EquipmentSlot,
     StateEnum,
@@ -119,7 +120,9 @@ def name_cmd(payload: str, message: "Message", replies: "Replies") -> None:
             return
 
         if player.name:
-            replies.add(text="❌ You already set a name")
+            replies.add(
+                text="❌ You already set a name. Perhaps in the /shop someone can help you to forget your current name"
+            )
         else:
             payload = " ".join(payload.split())
             if is_valid_name(payload):
@@ -673,6 +676,7 @@ def shop(message: "Message", replies: "Replies") -> None:
             return
 
         text = "Welcome to our shop! We sell everything a person could ever need for adventuring.\n\n"
+        text += f"**Reset Name Spell**\nPowerful spell to make everybody forget your name\n{RESET_NAME_COST}💰\n/buy_000\n\n"
         for item_id, price in sorted(shop_items.items()):
             base = session.query(BaseItem).filter_by(id=item_id).first()
             text += f"**{base}**\n{price}💰\n/buy_{base.id:03}\n\n"
@@ -694,6 +698,15 @@ def buy(payload: str, message: "Message", replies: "Replies") -> None:
             return
 
         item_id = int(payload)
+        if item_id == 0:
+            if player.validate_gold(RESET_NAME_COST, replies):
+                player.gold -= RESET_NAME_COST
+                player.name = None
+                replies.add(
+                    text="💫 Everyone forgot your name, you can set a new name with /name"
+                )
+            return
+
         price = shop_items[item_id]
         if player.validate_gold(price, replies):
             base = session.query(BaseItem).filter_by(id=item_id).first()
