@@ -194,7 +194,7 @@ def _process_player_cooldown(bot: DeltaBot, cooldown: Cooldown, session) -> None
             session.delete(cooldown)
         else:
             cooldown.ends_at = cooldown.ends_at + LIFEREGEN_COOLDOWN
-    elif cooldown.id == StateEnum.SPOTTED_THIEF:
+    elif cooldown.id == StateEnum.NOTICED_THIEF:
         thief = player.thief
         gold = calculate_thieve_gold(thief)
         thief.gold += gold
@@ -212,7 +212,7 @@ def _process_player_cooldown(bot: DeltaBot, cooldown: Cooldown, session) -> None
             f"🔥Exp: {exp:+}\n"
         )
         send_message(bot, thief.id, text=text)
-        player.stop_spotting()  # removes cooldown from session
+        player.stop_noticing()  # removes cooldown from session
     elif cooldown.id == StateEnum.PLAYING_DICE:
         session.delete(cooldown)
         player.state = StateEnum.REST

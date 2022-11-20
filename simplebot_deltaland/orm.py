@@ -21,7 +21,7 @@ from .consts import (
     STARTING_GOLD,
     STARTING_INV_SIZE,
     STARTING_LEVEL,
-    THIEVE_SPOTTED_COOLDOWN,
+    THIEVE_NOTICED_COOLDOWN,
     WORLD_ID,
     CombatTactic,
     EquipmentSlot,
@@ -211,23 +211,24 @@ class Player(Base):
         )
         self.reduce_stamina(quest.stamina_cost)
 
-    def start_spotting(self, thief: "Player") -> None:
-        self.state = StateEnum.SPOTTED_THIEF
+    def start_noticing(self, thief: "Player") -> None:
+        self.state = StateEnum.NOTICED_THIEF
+        thief.state = StateEnum.NOTICED_SENTINEL
         self.thief = thief
         self.cooldowns.append(
             Cooldown(  # noqa
-                id=StateEnum.SPOTTED_THIEF,
-                ends_at=time.time() + THIEVE_SPOTTED_COOLDOWN,
+                id=StateEnum.NOTICED_THIEF,
+                ends_at=time.time() + THIEVE_NOTICED_COOLDOWN,
             )
         )
 
-    def stop_spotting(self) -> None:
+    def stop_noticing(self) -> None:
         thief = self.thief
         self.thief = None
         thief.state = self.state = StateEnum.REST
         index = -1
         for i, cooldwn in enumerate(self.cooldowns):
-            if cooldwn.id == StateEnum.SPOTTED_THIEF:
+            if cooldwn.id == StateEnum.NOTICED_THIEF:
                 index = i
                 break
         assert index >= 0

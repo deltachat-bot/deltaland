@@ -150,8 +150,10 @@ def me_cmd(message: "Message", replies: "Replies") -> None:
                 state = "🛌 Resting"
         elif player.state == StateEnum.PLAYING_DICE:
             state = "🎲 Rolling the dice"
-        elif player.state == StateEnum.SPOTTED_THIEF:
-            state = "👀 noticed thief"
+        elif player.state == StateEnum.NOTICED_THIEF:
+            state = "👀 noticed **{player.thief.get_name()}** stealing"
+        elif player.state == StateEnum.NOTICED_SENTINEL:
+            state = f"👀 hiding from **{player.sentinel.get_name()}**"
         else:
             quest = get_quest(player.state)
             if quest:
@@ -573,7 +575,7 @@ def interfere(bot: "DeltaBot", message: "Message", replies: "Replies") -> None:
         if player.thief:
             thief: Player = player.thief
 
-            player.stop_spotting()
+            player.stop_noticing()
             if not player.sentinel_rank:
                 player.sentinel_rank = SentinelRank(stopped=0)
             player.sentinel_rank.stopped += 1
@@ -788,11 +790,11 @@ def off(payload: str, message: "Message", replies: "Replies") -> None:
             replies.add(text="You don't have that item equipped", quote=message)
 
 
-@simplebot.command(admin=True)
+@simplebot.command(name="/deletePlayer", admin=True)
 def delete_player(bot: "DeltaBot", payload: str, replies: "Replies") -> None:
     """Delete a player account.
 
-    /delete_player 10
+    /deletePlayer 10
     """
     player_id = bot.get_contact(payload).id if "@" in payload else int(payload)
     with session_scope() as session:
@@ -804,18 +806,18 @@ def delete_player(bot: "DeltaBot", payload: str, replies: "Replies") -> None:
             replies.add(text=f"❌ Unknown player: {player_id}")
 
 
-@simplebot.command(admin=True)
+@simplebot.command(name="/searchPlayer", admin=True)
 def search_player(bot: "DeltaBot", payload: str, replies: "Replies") -> None:
-    """Delete a player account.
+    """Search for players matching the given name.
 
-    /delete_player 10
+    /searchPlayer Arthur
     """
     with session_scope() as session:
         text = ""
         if payload:
             query = session.query(Player).filter(Player.name.ilike(f"%{payload}%"))
         else:
-            query = session.query(Player).filter_by(name="")
+            query = session.query(Player).filter_by(name=None)
         for player in query:
             addr = bot.get_contact(player.id).addr
             text += f"**{player.get_name()}**\n🆔 {player.id}\n📫 {addr}\n\n"
@@ -825,11 +827,11 @@ def search_player(bot: "DeltaBot", payload: str, replies: "Replies") -> None:
             replies.add(text=f"❌ No matches for: {payload}")
 
 
-@simplebot.command(name="/player_gold", admin=True)
+@simplebot.command(name="/playerGold", admin=True)
 def player_gold_cmd(args: list, replies: "Replies") -> None:
     """Add or substract gold to player.
 
-    /player_gold 10 +20
+    /playerGold 10 +20
     """
     player_id, gold = args[0], _parse_number(args[1])
     with session_scope() as session:

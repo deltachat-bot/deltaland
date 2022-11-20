@@ -128,7 +128,7 @@ class ThieveQuest(Quest):
                 f" Let's hope **{sentinel.get_name()}** won't notice you."
             )
             send_message(bot, thief.id, text=text)
-            sentinel.start_spotting(thief)
+            sentinel.start_noticing(thief)
         else:
             thief.state = StateEnum.REST
             gold = calculate_thieve_gold(thief)
