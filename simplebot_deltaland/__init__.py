@@ -7,19 +7,29 @@ from typing import TYPE_CHECKING
 
 import simplebot
 
-from .consts import DICE_FEE, RANKS_REQ_LEVEL, CombatTactic, StateEnum
+from .consts import (
+    DICE_FEE,
+    RANKS_REQ_LEVEL,
+    CombatTactic,
+    EquipmentSlot,
+    StateEnum,
+    Tier,
+)
 from .cooldown import cooldown_loop
 from .dice import play_dice
 from .experience import required_exp
 from .game import get_next_battle_cooldown, get_next_day_cooldown, init_game
+from .items import shop_items
 from .migrations import run_migrations
 from .orm import (
+    BaseItem,
     BattleRank,
     BattleTactic,
     CauldronCoin,
     CauldronRank,
     Cooldown,
     DiceRank,
+    Item,
     Player,
     SentinelRank,
     init,
@@ -28,19 +38,13 @@ from .orm import (
 from .quests import get_quest, quests
 from .util import (
     calculate_interfere_gold,
-    get_battle_result,
     get_database_path,
     get_image,
-    get_player,
-    get_players,
     human_time_duration,
     is_valid_name,
-    notify_level_up,
+    render_stats,
     send_message,
     setdefault,
-    validate_gold,
-    validate_level,
-    validate_resting,
 )
 
 if TYPE_CHECKING:
@@ -87,7 +91,7 @@ def start(bot: "DeltaBot", message: "Message", replies: "Replies") -> None:
             replies.add(text="❌ You already joined the game")
             return
         max_players = int(setdefault(bot, "max_players"))
-        if 0 < max_players <= get_players(session).count():
+        if 0 < max_players <= Player.get_all(session).count():
             replies.add(
                 text="❌ This is unfortunate, but the game is not accepting new players at the moment"
             )
@@ -110,8 +114,8 @@ def start(bot: "DeltaBot", message: "Message", replies: "Replies") -> None:
 def name_cmd(payload: str, message: "Message", replies: "Replies") -> None:
     """Set your name."""
     with session_scope() as session:
-        player = get_player(session, message, replies)
-        if not player or not validate_resting(player, replies, session):
+        player = Player.from_message(message, session, replies)
+        if not player or not player.validate_resting(session, replies):
             return
 
         if player.name:
@@ -131,7 +135,7 @@ def name_cmd(payload: str, message: "Message", replies: "Replies") -> None:
 def me_cmd(message: "Message", replies: "Replies") -> None:
     """Show your status."""
     with session_scope() as session:
-        player = get_player(session, message, replies)
+        player = Player.from_message(message, session, replies)
         if not player:
             return
 
@@ -176,24 +180,35 @@ def me_cmd(message: "Message", replies: "Replies") -> None:
             stamina_cooldown = ""
         battle_cooldown = get_next_battle_cooldown(session)
 
+        inv = (
+            session.query(Item)
+            .filter_by(player_id=player.id, slot=EquipmentSlot.BAG)
+            .count()
+        )
+
         rankings = "📊 Ranking: /top" if player.level >= RANKS_REQ_LEVEL else ""
+        atk, def_ = player.get_equipment_stats(session)
         replies.add(
             text=f"""Goblin attack in {battle_cooldown}!
 
-            {name}
+            **{name}**
             🏅Level: {player.level}
-            ⚔️Atk: {player.attack}  🛡️Def: {player.defense}
+            ⚔️Atk: {player.attack + atk}  🛡️Def: {player.defense + def_}
             🔥Exp: {player.exp}/{required_exp(player.level+1)}
             ❤️HP: {player.hp}/{player.max_hp}
             🔋Stamina: {player.stamina}/{player.max_stamina}{stamina_cooldown}
             💰{player.gold}
 
+            🎽Equipment {render_stats(atk, def_) or "[-]"}
+            🎒Bag: {inv}/{player.inv_size} /inv
+
             State:
             {state}
 
-            ⚔️ Battle: /battle
-            🗺️ Quests: /quests
+            🏚️ Shop: /shop
             🍺 Tavern: /tavern
+            🗺️ Quests: /quests
+            ⚔️ Battle: /battle
             {rankings}
             """
         )
@@ -203,9 +218,9 @@ def me_cmd(message: "Message", replies: "Replies") -> None:
 def battle(message: "Message", replies: "Replies") -> None:
     """Choose battle tactics."""
     with session_scope() as session:
-        player = get_player(session, message, replies)
-        if not player and not validate_resting(
-            player, replies, session, ignore_battle=True
+        player = Player.from_message(message, session, replies)
+        if not player and not player.validate_resting(
+            session, replies, ignore_battle=True
         ):
             return
 
@@ -224,9 +239,9 @@ def battle(message: "Message", replies: "Replies") -> None:
 def hit(message: "Message", replies: "Replies") -> None:
     """Choose HIT as battle tactic."""
     with session_scope() as session:
-        player = get_player(session, message, replies)
-        if not player and not validate_resting(
-            player, replies, session, ignore_battle=True
+        player = Player.from_message(message, session, replies)
+        if not player and not player.validate_resting(
+            session, replies, ignore_battle=True
         ):
             return
 
@@ -243,9 +258,9 @@ def hit(message: "Message", replies: "Replies") -> None:
 def feint(message: "Message", replies: "Replies") -> None:
     """Choose FEINT as battle tactic."""
     with session_scope() as session:
-        player = get_player(session, message, replies)
-        if not player and not validate_resting(
-            player, replies, session, ignore_battle=True
+        player = Player.from_message(message, session, replies)
+        if not player and not player.validate_resting(
+            session, replies, ignore_battle=True
         ):
             return
 
@@ -262,9 +277,9 @@ def feint(message: "Message", replies: "Replies") -> None:
 def parry(message: "Message", replies: "Replies") -> None:
     """Choose PARRY as battle tactic."""
     with session_scope() as session:
-        player = get_player(session, message, replies)
-        if not player and not validate_resting(
-            player, replies, session, ignore_battle=True
+        player = Player.from_message(message, session, replies)
+        if not player and not player.validate_resting(
+            session, replies, ignore_battle=True
         ):
             return
 
@@ -281,21 +296,21 @@ def parry(message: "Message", replies: "Replies") -> None:
 def report(message: "Message", replies: "Replies") -> None:
     """Show your last results in the battlefield."""
     with session_scope() as session:
-        player = get_player(session, message, replies)
+        player = Player.from_message(message, session, replies)
         if not player:
             return
         if not player.battle_report:
             replies.add(text="You were not in the town in the last battle.")
         else:
-            replies.add(text=get_battle_result(player), filename=get_image("goblin"))
+            replies.add(text=player.get_battle_report(), filename=get_image("goblin"))
 
 
 @simplebot.command(hidden=True)
 def top(message: "Message", replies: "Replies") -> None:
     """Show the list of scoreboards."""
     with session_scope() as session:
-        player = get_player(session, message, replies)
-        if not player or not validate_level(player, RANKS_REQ_LEVEL, replies):
+        player = Player.from_message(message, session, replies)
+        if not player or not player.validate_level(RANKS_REQ_LEVEL, replies):
             return
 
     rankings = [
@@ -313,8 +328,8 @@ def top(message: "Message", replies: "Replies") -> None:
 def top1(message: "Message", replies: "Replies") -> None:
     """Most victories in the battlefield."""
     with session_scope() as session:
-        player = get_player(session, message, replies)
-        if not player or not validate_level(player, RANKS_REQ_LEVEL, replies):
+        player = Player.from_message(message, session, replies)
+        if not player or not player.validate_level(RANKS_REQ_LEVEL, replies):
             return
 
         is_on_top = False
@@ -343,14 +358,14 @@ def top1(message: "Message", replies: "Replies") -> None:
 def top2(message: "Message", replies: "Replies") -> None:
     """Top gold collectors."""
     with session_scope() as session:
-        player = get_player(session, message, replies)
-        if not player or not validate_level(player, RANKS_REQ_LEVEL, replies):
+        player = Player.from_message(message, session, replies)
+        if not player or not player.validate_level(RANKS_REQ_LEVEL, replies):
             return
 
         is_on_top = False
         text = ""
         for i, player2 in enumerate(
-            get_players(session)
+            Player.get_all(session)
             .filter(Player.gold > 0)
             .order_by(Player.gold.desc())
             .limit(15)
@@ -375,8 +390,8 @@ def top2(message: "Message", replies: "Replies") -> None:
 def top3(message: "Message", replies: "Replies") -> None:
     """Most gold received from the magic cauldron."""
     with session_scope() as session:
-        player = get_player(session, message, replies)
-        if not player or not validate_level(player, RANKS_REQ_LEVEL, replies):
+        player = Player.from_message(message, session, replies)
+        if not player or not player.validate_level(RANKS_REQ_LEVEL, replies):
             return
 
         is_on_top = False
@@ -407,8 +422,8 @@ def top3(message: "Message", replies: "Replies") -> None:
 def top4(message: "Message", replies: "Replies") -> None:
     """Most wins in dice this month."""
     with session_scope() as session:
-        player = get_player(session, message, replies)
-        if not player or not validate_level(player, RANKS_REQ_LEVEL, replies):
+        player = Player.from_message(message, session, replies)
+        if not player or not player.validate_level(RANKS_REQ_LEVEL, replies):
             return
 
         is_on_top = False
@@ -440,8 +455,8 @@ def top4(message: "Message", replies: "Replies") -> None:
 def top5(message: "Message", replies: "Replies") -> None:
     """Most thieves stopped."""
     with session_scope() as session:
-        player = get_player(session, message, replies)
-        if not player or not validate_level(player, RANKS_REQ_LEVEL, replies):
+        player = Player.from_message(message, session, replies)
+        if not player or not player.validate_level(RANKS_REQ_LEVEL, replies):
             return
 
         is_on_top = False
@@ -470,8 +485,8 @@ def top5(message: "Message", replies: "Replies") -> None:
 def tavern(message: "Message", replies: "Replies") -> None:
     """Go to the tavern."""
     with session_scope() as session:
-        player = get_player(session, message, replies)
-        if not player or not validate_resting(player, replies, session):
+        player = Player.from_message(message, session, replies)
+        if not player or not player.validate_resting(session, replies):
             return
 
     text = f"""**🍺 Tavern**
@@ -493,11 +508,11 @@ def tavern(message: "Message", replies: "Replies") -> None:
 def dice(bot: "DeltaBot", message: "Message", replies: "Replies") -> None:
     """Play dice in the tavern."""
     with session_scope() as session:
-        player = get_player(session, message, replies)
+        player = Player.from_message(message, session, replies)
         if (
             not player
-            or not validate_resting(player, replies, session)
-            or not validate_gold(player, DICE_FEE, replies)
+            or not player.validate_resting(session, replies)
+            or not player.validate_gold(DICE_FEE, replies)
         ):
             return
 
@@ -508,8 +523,8 @@ def dice(bot: "DeltaBot", message: "Message", replies: "Replies") -> None:
 def cauldron(message: "Message", replies: "Replies") -> None:
     """Toss a coin in the magic cauldron."""
     with session_scope() as session:
-        player = get_player(session, message, replies)
-        if not player or not validate_resting(player, replies, session):
+        player = Player.from_message(message, session, replies)
+        if not player or not player.validate_resting(session, replies):
             return
 
         cooldown = get_next_day_cooldown(session)
@@ -517,7 +532,7 @@ def cauldron(message: "Message", replies: "Replies") -> None:
             replies.add(
                 text=f"You already tossed a coin, come again later. (⏰{cooldown})"
             )
-        elif validate_gold(player, 1, replies):
+        elif player.validate_gold(1, replies):
             player.gold -= 1
             player.cauldron_coin = CauldronCoin()
             replies.add(
@@ -529,7 +544,7 @@ def cauldron(message: "Message", replies: "Replies") -> None:
 def quests_cmd(message: "Message", replies: "Replies") -> None:
     """Show available quests."""
     with session_scope() as session:
-        player = get_player(session, message, replies)
+        player = Player.from_message(message, session, replies)
         if not player:
             return
 
@@ -551,12 +566,12 @@ def quests_cmd(message: "Message", replies: "Replies") -> None:
 def interfere(bot: "DeltaBot", message: "Message", replies: "Replies") -> None:
     """Stop a thief."""
     with session_scope() as session:
-        player = get_player(session, message, replies)
+        player = Player.from_message(message, session, replies)
         if not player:
             return
 
         if player.thief:
-            thief = player.thief
+            thief: Player = player.thief
 
             player.stop_spotting()
             if not player.sentinel_rank:
@@ -566,7 +581,7 @@ def interfere(bot: "DeltaBot", message: "Message", replies: "Replies") -> None:
             player.gold += player_gold
             player_exp = random.randint(1, 3)
             if player.increase_exp(player_exp):  # level up
-                notify_level_up(bot, player)
+                player.notify_level_up(bot)
             text = (
                 "You called the town's guards and charged at the thief."
                 f" **{thief.get_name()}** fled but not before receiving one of your blows."
@@ -576,7 +591,7 @@ def interfere(bot: "DeltaBot", message: "Message", replies: "Replies") -> None:
             )
             replies.add(text=text)
 
-            thief_gold = -min(calculate_interfere_gold(thief), thief.gold)
+            thief_gold = -min(calculate_interfere_gold(thief.level), thief.gold)
             thief.gold += thief_gold
             lost_hp = -thief.reduce_hp(random.randint(50, 80))
             text = (
@@ -593,6 +608,184 @@ def interfere(bot: "DeltaBot", message: "Message", replies: "Replies") -> None:
             send_message(bot, thief.id, text=text)
         else:
             replies.add(text="Too late. Action is not available")
+
+
+@simplebot.command(name="/inv", hidden=True)
+def inv_cmd(message: "Message", replies: "Replies") -> None:
+    """Show inventory."""
+    with session_scope() as session:
+        player = Player.from_message(message, session, replies)
+        if not player:
+            return
+
+        equipment = []
+        inventory = []
+        for item in player.items:
+            if item.slot == EquipmentSlot.BAG:
+                inventory.append(item)
+            else:
+                equipment.append(item)
+        items = ""
+        atk, def_ = 0, 0
+        if equipment:
+            for item in equipment:
+                items += f"{item} /off_{item.id:03}\n"
+                atk += item.attack or 0
+                def_ += item.defense or 0
+        stats = render_stats(atk, def_) or "[-]"
+        text = f"**🎽Equipment {stats}**\n{items}\n"
+        text += f"**🎒Bag: ({len(inventory)}/{player.inv_size}):**\n"
+        if inventory:
+            text += "\n".join(
+                f"{item} /{'on' if item.base.equipable else 'use'}_{item.id:03}"
+                for item in inventory
+            )
+        else:
+            text += "[Empty]"
+
+    replies.add(text=text)
+
+
+@simplebot.command(hidden=True)
+def shop(message: "Message", replies: "Replies") -> None:
+    """Go to the shop."""
+    with session_scope() as session:
+        player = Player.from_message(message, session, replies)
+        if not player or not player.validate_resting(session, replies):
+            return
+
+        text = "Welcome to our shop! We sell everything a person could ever need for adventuring.\n\n"
+        for item_id, price in sorted(shop_items.items()):
+            base = session.query(BaseItem).filter_by(id=item_id).first()
+            text += f"**{base}**\n{price}💰\n/buy_{base.id:03}\n\n"
+
+        text += "\n💰 To sell items: /sell"
+        replies.add(text=text, filename=get_image("shop"))
+
+
+@simplebot.command(hidden=True)
+def buy(payload: str, message: "Message", replies: "Replies") -> None:
+    """Buy an item."""
+    with session_scope() as session:
+        player = Player.from_message(message, session, replies)
+        if (
+            not player
+            or not player.validate_resting(session, replies)
+            or not player.validate_inv(session, replies)
+        ):
+            return
+
+        item_id = int(payload)
+        price = shop_items[item_id]
+        if player.validate_gold(price, replies):
+            base = session.query(BaseItem).filter_by(id=item_id).first()
+            level = 1 if base.tier != Tier.NONE else None
+            session.add(
+                Item(
+                    player_id=player.id,
+                    base_id=base.id,
+                    level=level,
+                    attack=base.attack,
+                    defense=base.defense,
+                )
+            )
+            player.gold -= price
+            replies.add(text="✅ Item added to your bag - /inv")
+
+
+@simplebot.command(hidden=True)
+def sell(payload: str, message: "Message", replies: "Replies") -> None:
+    """Sell an item in the shop."""
+    with session_scope() as session:
+        player = Player.from_message(message, session, replies)
+        if not player or not player.validate_resting(session, replies):
+            return
+
+        if payload:
+            item = (
+                session.query(Item)
+                .filter_by(id=int(payload), player_id=player.id, slot=EquipmentSlot.BAG)
+                .first()
+            )
+            if item:
+                session.delete(item)
+                player.gold += 1
+                replies.add(text="Item sold: +1💰")
+            else:
+                replies.add(text="Item not found in your bag", quote=message)
+        else:
+            items = session.query(Item).filter_by(
+                player_id=player.id, slot=EquipmentSlot.BAG
+            )
+            text = "Select item to sell:\n\n"
+            for item in items:
+                text += f"**{item}**\n1💰 /sell_{item.id:03}\n\n"
+            replies.add(text=text)
+
+
+@simplebot.command(name="/on", hidden=True)
+def on_cmd(payload: str, message: "Message", replies: "Replies") -> None:
+    """Equip an item."""
+    with session_scope() as session:
+        player = Player.from_message(message, session, replies)
+        if not player or not player.validate_resting(session, replies):
+            return
+
+        item = (
+            session.query(Item)
+            .filter_by(id=int(payload), player_id=player.id, slot=EquipmentSlot.BAG)
+            .first()
+        )
+        if item:
+            slot = item.get_slot()
+            if slot == EquipmentSlot.BAG:
+                replies.add(text="You can't equip that item", quote=message)
+                return
+            if slot == EquipmentSlot.HANDS:
+                hand_items = (
+                    session.query(Item).filter_by(player_id=player.id, slot=slot).all()
+                )
+                equipped_item = hand_items[1] if len(hand_items) == 2 else None
+            else:
+                equipped_item = (
+                    session.query(Item)
+                    .filter_by(player_id=player.id, slot=slot)
+                    .first()
+                )
+            if equipped_item:
+                equipped_item.slot = EquipmentSlot.BAG
+            item.slot = slot
+            replies.add(text=f"Item equipped: **{item}**\n\n{item.base.description}")
+        else:
+            replies.add(text="Item not found in your bag", quote=message)
+
+
+@simplebot.command(hidden=True)
+def off(payload: str, message: "Message", replies: "Replies") -> None:
+    """Unequip an item."""
+    with session_scope() as session:
+        player = Player.from_message(message, session, replies)
+        if (
+            not player
+            or not player.validate_resting(session, replies)
+            or not player.validate_inv(session, replies)
+        ):
+            return
+
+        item = (
+            session.query(Item)
+            .filter(
+                Item.id == int(payload),
+                Item.player_id == player.id,
+                Item.slot != EquipmentSlot.BAG,
+            )
+            .first()
+        )
+        if item:
+            item.slot = EquipmentSlot.BAG
+            replies.add(text=f"Item unequipped: **{item}**")
+        else:
+            replies.add(text="You don't have that item equipped", quote=message)
 
 
 @simplebot.command(admin=True)

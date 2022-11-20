@@ -6,25 +6,14 @@ from typing import TYPE_CHECKING, List, Optional
 from sqlalchemy import func
 
 from .consts import Quality, StateEnum
-from .orm import session_scope
-from .util import (
-    calculate_thieve_gold,
-    get_player,
-    get_players,
-    human_time_duration,
-    notify_level_up,
-    send_message,
-    validate_hp,
-    validate_level,
-    validate_resting,
-    validate_stamina,
-)
+from .orm import Player, session_scope
+from .util import calculate_thieve_gold, human_time_duration, send_message
 
 if TYPE_CHECKING:
     from deltachat import Message
     from simplebot.bot import DeltaBot, Replies
 
-    from .orm import Cooldown, Player
+    from .orm import Cooldown
 
 
 class QuestResult:
@@ -63,13 +52,13 @@ class Quest:
     def command(self, message: "Message", replies: "Replies") -> None:
         """Command to start the quest"""
         with session_scope() as session:
-            player = get_player(session, message, replies)
+            player = Player.from_message(message, session, replies)
             if (
                 not player
-                or not validate_level(player, self.required_level, replies)
-                or not validate_resting(player, replies, session)
-                or not validate_hp(player, replies)
-                or not validate_stamina(player, self.stamina_cost, replies)
+                or not player.validate_level(self.required_level, replies)
+                or not player.validate_resting(session, replies)
+                or not player.validate_hp(replies)
+                or not player.validate_stamina(self.stamina_cost, replies)
             ):
                 return
 
@@ -85,7 +74,7 @@ class Quest:
         if result.exp:
             text += f"🔥Exp: {result.exp:+}\n"
             if player.increase_exp(result.exp):  # level up
-                notify_level_up(bot, player)
+                player.notify_level_up(bot)
         if result.gold:
             text += f"💰Gold: {result.gold:+}\n"
             player.gold += result.gold
@@ -122,7 +111,7 @@ class ThieveQuest(Quest):
     def end(self, bot: "DeltaBot", cooldown: "Cooldown", session) -> None:
         thief = cooldown.player
         sentinel = (
-            get_players(session)
+            Player.get_all(session)
             .filter_by(state=StateEnum.REST)
             .order_by(func.random())
             .first()
@@ -146,7 +135,7 @@ class ThieveQuest(Quest):
             thief.gold += gold
             exp = random.randint(1, 3)
             if thief.increase_exp(exp):  # level up
-                notify_level_up(bot, thief)
+                thief.notify_level_up(bot)
             text = (
                 "Nobody noticed you. You successfully stole some loot. You feel great.\n\n"
                 f"💰Gold: {gold:+}\n"

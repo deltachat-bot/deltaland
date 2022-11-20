@@ -82,3 +82,21 @@ class TestPlugin:
 
     def test_interfere(self, mocker) -> None:
         self._basic_test("/interfere", mocker)
+
+    def test_inv(self, mocker) -> None:
+        self._basic_test("/inv", mocker)
+
+    def test_shop(self, mocker) -> None:
+        self._basic_test("/shop", mocker)
+
+    def test_buy(self, mocker) -> None:
+        self._basic_test("/buy 1", mocker)
+
+    def test_sell(self, mocker) -> None:
+        self._basic_test("/sell 1", mocker)
+
+    def test_on(self, mocker) -> None:
+        self._basic_test("/on 1", mocker)
+
+    def test_off(self, mocker) -> None:
+        self._basic_test("/off 1", mocker)

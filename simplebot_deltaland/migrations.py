@@ -5,7 +5,7 @@ from logging import Logger
 
 from simplebot.bot import DeltaBot
 
-from .consts import DATABASE_VERSION, MAX_HP
+from .consts import DATABASE_VERSION, STARTING_INV_SIZE
 from .util import get_database_path
 
 
@@ -20,77 +20,21 @@ def run_migrations(bot: DeltaBot) -> None:
     try:
         version = database.execute("SELECT * FROM game").fetchone()["version"]
         bot.logger.debug(f"Current database version: v{version}")
-        for i in range(2, DATABASE_VERSION + 1):
+        for i in range(5, DATABASE_VERSION + 1):
+            if version >= i:
+                continue
             migration = globals().get(f"migrate{i}")
             assert migration
-            migration(version, database, bot.logger)
+            migration(database, bot.logger)
     finally:
         database.close()
 
 
-def migrate2(version: int, database: sqlite3.Connection, logger: Logger) -> None:
-    new_version = 2
-    if version < new_version:
-        logger.info(f"Migrating database: v{new_version}")
-        with database:
-            database.execute("UPDATE game SET version=?", (new_version,))
-            database.execute("UPDATE player SET attack=1, defense=1")
-            database.execute(
-                """CREATE TABLE IF NOT EXISTS cauldroncoin (
-	        id INTEGER NOT NULL,
-	        PRIMARY KEY (id),
-	        FOREIGN KEY(id) REFERENCES player (id)
-                )"""
-            )
-            for player in database.execute(
-                "SELECT * FROM player WHERE cauldron_coin=1"
-            ):
-                database.execute(
-                    "REPLACE INTO cauldroncoin VALUES (?)", (player["id"],)
-                )
-            database.execute(
-                """CREATE TABLE player2 (
-                    id INTEGER NOT NULL,
-                    name VARCHAR(100),
-                    birthday INTEGER,
-                    level INTEGER,
-                    exp INTEGER,
-                    attack INTEGER,
-                    defense INTEGER,
-                    hp INTEGER,
-                    max_hp INTEGER,
-                    mana INTEGER,
-                    max_mana INTEGER,
-                    stamina INTEGER,
-                    max_stamina INTEGER,
-                    gold INTEGER,
-                    state INTEGER,
-                    PRIMARY KEY (id)
-                )"""
-            )
-            database.execute(
-                "INSERT INTO player2 SELECT id, name, birthday, level, exp, attack, defense,hp, max_hp, mana, max_mana, stamina, max_stamina, gold, state FROM player"
-            )
-            database.execute("DROP TABLE player")
-            database.execute("ALTER TABLE player2 RENAME TO player")
-
-            # due to bug in v1, cauldronrank table need to be cleaned up
-            database.execute("DELETE FROM cauldronrank WHERE gold=0")
-
-
-def migrate3(version: int, database: sqlite3.Connection, logger: Logger) -> None:
-    new_version = 3
-    if version < new_version:
-        logger.info(f"Migrating database: v{new_version}")
-        with database:
-            database.execute("UPDATE game SET version=?", (new_version,))
-            database.execute("UPDATE player SET hp=?, max_hp=?", [MAX_HP] * 2)
-
-
-def migrate4(version: int, database: sqlite3.Connection, logger: Logger) -> None:
-    new_version = 4
-    if version < new_version:
-        logger.info(f"Migrating database: v{new_version}")
-        with database:
-            database.execute("UPDATE game SET version=?", (new_version,))
-            database.execute("ALTER TABLE player ADD COLUMN  thief_id INTEGER")
+def migrate5(database: sqlite3.Connection, logger: Logger) -> None:
+    new_version = 5
+    logger.info(f"Migrating database: v{new_version}")
+    with database:
+        database.execute("UPDATE game SET version=?", (new_version,))
+        database.execute(
+            f"ALTER TABLE player ADD COLUMN  inv_size INTEGER DEFAULT {STARTING_INV_SIZE}"
+        )

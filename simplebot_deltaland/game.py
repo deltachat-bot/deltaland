@@ -3,6 +3,7 @@ import time
 from datetime import datetime, timedelta
 
 from .consts import DATABASE_VERSION, WORLD_ID, StateEnum
+from .items import init_items
 from .orm import Cooldown, Game, Player, session_scope
 from .util import human_time_duration
 
@@ -11,6 +12,8 @@ def init_game() -> None:
     with session_scope() as session:
         if not session.query(Game).first():
             session.add(Game(version=DATABASE_VERSION))
+
+        init_items(session)
 
         world = session.query(Player).filter_by(id=WORLD_ID).first()
         if not world:

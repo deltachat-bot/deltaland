@@ -29,16 +29,11 @@ from .orm import (
     CauldronRank,
     Cooldown,
     DiceRank,
+    Player,
     session_scope,
 )
 from .quests import get_quest
-from .util import (
-    calculate_thieve_gold,
-    get_image,
-    get_players,
-    notify_level_up,
-    send_message,
-)
+from .util import calculate_thieve_gold, get_image, send_message
 
 
 def cooldown_loop(bot: DeltaBot) -> None:
@@ -108,7 +103,7 @@ def _process_world_cauldron(bot, session) -> None:
 
 
 def _process_world_battle(bot, session) -> None:
-    for player in get_players(session):
+    for player in Player.get_all(session):
         victory = False
         monster_tactic = random.choice(list(CombatTactic))
         gold = random.randint((player.level + 1) // 2, player.level + 1)
@@ -169,7 +164,7 @@ def _process_world_battle(bot, session) -> None:
             battle.hp = -player.reduce_hp(hit_points)  # -100% hit_points
 
         if battle.exp and player.increase_exp(battle.exp):  # level up
-            notify_level_up(bot, player)
+            player.notify_level_up(bot)
 
         player.battle_report = battle
         if victory:
@@ -205,7 +200,7 @@ def _process_player_cooldown(bot: DeltaBot, cooldown: Cooldown, session) -> None
         thief.gold += gold
         exp = random.randint(1, 3)
         if thief.increase_exp(exp):  # level up
-            notify_level_up(bot, thief)
+            thief.notify_level_up(bot)
 
         text = f"You let **{thief.get_name()}** rob the townsmen. We hope you feel terrible."
         send_message(bot, player.id, text=text)
