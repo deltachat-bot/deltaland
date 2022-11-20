@@ -453,6 +453,10 @@ class Item(Base):
             name += f" lvl{self.level}"
         return name
 
+    @property
+    def required_level(self) -> int:
+        return (self.base.tier or 0) * 10
+
     def __str__(self) -> str:
         name = self.name
         stats = render_stats(self.attack, self.defense)

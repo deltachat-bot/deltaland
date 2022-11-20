@@ -768,6 +768,12 @@ def on_cmd(payload: str, message: "Message", replies: "Replies") -> None:
             .first()
         )
         if item:
+            if item.required_level > player.level:
+                replies.add(
+                    text="You need level {item.required_level} or higher to equip that item",
+                    quote=message,
+                )
+                return
             slot = item.get_slot()
             if slot == EquipmentSlot.BAG:
                 replies.add(text="You can't equip that item", quote=message)
