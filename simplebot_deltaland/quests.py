@@ -131,7 +131,7 @@ class ThieveQuest(Quest):
             sentinel.start_noticing(thief)
         else:
             thief.state = StateEnum.REST
-            gold = calculate_thieve_gold(thief)
+            gold = calculate_thieve_gold(thief.level)
             thief.gold += gold
             exp = random.randint(1, 3)
             if thief.increase_exp(exp):  # level up

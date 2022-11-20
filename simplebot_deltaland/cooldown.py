@@ -196,7 +196,7 @@ def _process_player_cooldown(bot: DeltaBot, cooldown: Cooldown, session) -> None
             cooldown.ends_at = cooldown.ends_at + LIFEREGEN_COOLDOWN
     elif cooldown.id == StateEnum.NOTICED_THIEF:
         thief = player.thief
-        gold = calculate_thieve_gold(thief)
+        gold = calculate_thieve_gold(thief.level)
         thief.gold += gold
         exp = random.randint(1, 3)
         if thief.increase_exp(exp):  # level up
