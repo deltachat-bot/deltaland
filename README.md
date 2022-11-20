@@ -1,4 +1,4 @@
-<p align="center"><img height="200" width="200" src="https://github.com/adbenitez/simplebot_deltaland/raw/master/images/banner.png"></p>
+<div align="center"><img height="200" width="260" src="https://github.com/adbenitez/simplebot_deltaland/raw/master/images/banner.png"></div>
 <h1 align="center">Deltaland</h1>
 
 [![Latest Release](https://img.shields.io/pypi/v/simplebot_deltaland.svg)](https://pypi.org/project/simplebot_deltaland)
