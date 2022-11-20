@@ -863,7 +863,7 @@ def search_player(bot: "DeltaBot", payload: str, replies: "Replies") -> None:
 
 
 @simplebot.command(name="/playerGold", admin=True)
-def player_gold_cmd(args: list, replies: "Replies") -> None:
+def player_gold_cmd(bot: "DeltaBot", args: list, replies: "Replies") -> None:
     """Add or substract gold to player.
 
     /playerGold 10 +20
