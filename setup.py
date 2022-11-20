@@ -23,7 +23,7 @@ if __name__ == "__main__":
     MODULE_NAME = "simplebot_deltaland"
     DESC = "Fantasy game for Delta Chat (SimpleBot plugin)"
 
-    with open("README.rst", encoding="utf-8") as fh:
+    with open("README.md", encoding="utf-8") as fh:
         long_description = fh.read()
 
     setup(
@@ -37,7 +37,7 @@ if __name__ == "__main__":
         },
         description=DESC,
         long_description=long_description,
-        long_description_content_type="text/x-rst",
+        long_description_content_type="text/markdown",
         author="adbenitez",
         author_email="adbenitez@nauta.cu",
         url=f"https://github.com/adbenitez/{MODULE_NAME}",
