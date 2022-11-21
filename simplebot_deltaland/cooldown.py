@@ -7,10 +7,9 @@ from simplebot import DeltaBot
 from sqlalchemy import func
 
 from .consts import (
+    CAULDRON_GIFT,
     DICE_FEE,
     LIFEREGEN_COOLDOWN,
-    MAX_CAULDRON_GIFT,
-    MIN_CAULDRON_GIFT,
     STAMINA_COOLDOWN,
     WORLD_ID,
     CombatTactic,
@@ -83,23 +82,22 @@ def _process_world_cooldown(bot: DeltaBot, cooldown: Cooldown, session) -> None:
 
 def _process_world_cauldron(bot, session) -> None:
     winner = ""
-    gift = session.query(CauldronCoin).count()
-    gift = max(MIN_CAULDRON_GIFT, min(MAX_CAULDRON_GIFT, gift))
+
     for coin in session.query(CauldronCoin).order_by(func.random()):
         player = coin.player
         session.delete(coin)
         send_message(
             bot,
             player.id,
-            text=f"✨{winner or 'You'} received {gift}💰 from the magic cauldron✨",
+            text=f"✨{winner or 'You'} received {CAULDRON_GIFT}💰 from the magic cauldron✨",
             filename=None if winner else get_image("cauldron"),
         )
         if not winner:
             winner = player.get_name()
-            player.gold += gift
+            player.gold += CAULDRON_GIFT
             if not player.cauldron_rank:
                 player.cauldron_rank = CauldronRank(gold=0)
-            player.cauldron_rank.gold += gift
+            player.cauldron_rank.gold += CAULDRON_GIFT
 
 
 def _process_world_battle(bot, session) -> None:

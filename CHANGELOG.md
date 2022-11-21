@@ -10,6 +10,7 @@
 - add new welcome image
 - move tavern and shop from /me to /castle section
 - allow to reset name
+- set cauldron gift to a fixed amount
 
 ## v0.1.0
 
