@@ -1,7 +1,6 @@
 """Database migrations"""
 import os
 import sqlite3
-from logging import Logger
 
 from simplebot.bot import DeltaBot
 
@@ -20,21 +19,18 @@ def run_migrations(bot: DeltaBot) -> None:
     try:
         version = database.execute("SELECT * FROM game").fetchone()["version"]
         bot.logger.debug(f"Current database version: v{version}")
-        for i in range(5, DATABASE_VERSION + 1):
-            if version >= i:
-                continue
+        for i in range(version + 1, DATABASE_VERSION + 1):
             migration = globals().get(f"migrate{i}")
             assert migration
-            migration(database, bot.logger)
+            bot.logger.info(f"Migrating database: v{i}")
+            with database:
+                database.execute("UPDATE game SET version=?", (i,))
+                migration(database, bot.logger)
     finally:
         database.close()
 
 
-def migrate5(database: sqlite3.Connection, logger: Logger) -> None:
-    new_version = 5
-    logger.info(f"Migrating database: v{new_version}")
-    with database:
-        database.execute("UPDATE game SET version=?", (new_version,))
-        database.execute(
-            f"ALTER TABLE player ADD COLUMN  inv_size INTEGER DEFAULT {STARTING_INV_SIZE}"
-        )
+def migrate5(database: sqlite3.Connection) -> None:
+    database.execute(
+        f"ALTER TABLE player ADD COLUMN  inv_size INTEGER DEFAULT {STARTING_INV_SIZE}"
+    )
