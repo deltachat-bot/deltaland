@@ -40,7 +40,7 @@ dev = [
 ]
 
 [project.scripts]
-faqbot = "deltaland:main"
+deltaland = "deltaland:main"
 
 [tool.setuptools]
 packages = ["deltaland"]
