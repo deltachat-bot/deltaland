@@ -25,7 +25,7 @@ dependencies = [
     "SQLAlchemy>=1.4.44",
     "aiosqlite>=0.17.0",
     "aiofiles>=22.1.0",
-    "git+https://github.com/adbenitez/simplebot-aio",
+    "simplebot-aio @ git+https://github.com/simplebot-org/simplebot-aio.git",
 ]
 
 [project.optional-dependencies]
