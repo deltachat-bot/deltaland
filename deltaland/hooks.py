@@ -81,7 +81,7 @@ async def on_init(bot: Bot, _args: Namespace) -> None:
 
 @cli.on_start
 async def on_start(bot: Bot, args: Namespace) -> None:
-    path = os.path.join(args.config_dir, "sqlite.db")
+    path = os.path.join(args.config_dir, "game.db")
     run_migrations(path)
     await init_db_engine(bot, f"sqlite+aiosqlite:///{path}")
     await init_game()
