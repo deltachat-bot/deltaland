@@ -42,6 +42,9 @@ dev = [
 [project.scripts]
 faqbot = "deltaland:main"
 
+[tool.setuptools]
+packages = ["deltaland"]
+
 [tool.isort]
 profile = "black"
 
