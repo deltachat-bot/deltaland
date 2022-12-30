@@ -1,13 +1,46 @@
 [build-system]
-requires = [
-  "setuptools>=45",
-  "setuptools-scm>=6.2",
-  "wheel",
-]
+requires = ["setuptools>=45", "setuptools_scm[toml]>=6.2"]
 build-backend = "setuptools.build_meta"
 
-[tool.setuptools_scm]
-write_to = "simplebot_deltaland/_version.py"
+[project]
+name = "deltaland"
+description = "Fantasy MMO game bot for Delta Chat"
+readme = "README.md"
+requires-python = ">=3.7"
+license = {file = "LICENSE.txt"}
+keywords = ["deltachat", "bot"]
+authors = [
+  {email = "adbenitez@hispanilandia.net"},
+  {name = "adbenitez"}
+]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Programming Language :: Python :: 3",
+  "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
+]
+dynamic = [
+    "version"
+]
+dependencies = [
+    "SQLAlchemy>=1.4.44",
+    "aiosqlite>=0.17.0",
+    "aiofiles>=22.1.0",
+    "simplebot-aio",
+]
+
+[project.optional-dependencies]
+dev = [
+  "black",
+  "mypy",
+  "isort",
+  "pylint",
+  "pylama",
+  "pytest",
+  "types-aiofiles",
+]
+
+[project.scripts]
+faqbot = "deltaland:main"
 
 [tool.isort]
 profile = "black"

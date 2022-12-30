@@ -4,11 +4,12 @@ import random
 import time
 from typing import Tuple
 
-from simplebot.bot import DeltaBot, Replies
+from sqlalchemy.future import select
+from sqlalchemy.orm import selectinload
 
 from .consts import DICE_COOLDOWN, DICE_FEE, StateEnum
-from .orm import Cooldown, DiceRank, Player
-from .util import human_time_duration, send_message
+from .orm import Cooldown, DiceRank, Player, fetchone
+from .util import human_time_duration
 
 _DICES = {
     1: "⚀",
@@ -28,17 +29,22 @@ def dices2str(dices: Tuple[int, ...]) -> str:
     return " + ".join(_DICES[val] for val in dices) + f" ({sum(dices)})"
 
 
-def play_dice(player: Player, session, bot: DeltaBot, replies: Replies) -> None:
+async def play_dice(player: Player, session) -> None:
     player.gold -= DICE_FEE
     player.state = StateEnum.PLAYING_DICE
     if not player.dice_rank:
         player.dice_rank = DiceRank(gold=0)
-    cooldown = session.query(Cooldown).filter_by(id=StateEnum.PLAYING_DICE).first()
+    stmt = (
+        select(Cooldown)
+        .options(selectinload(Cooldown.player).selectinload(Player.dice_rank))
+        .filter_by(id=StateEnum.PLAYING_DICE)
+    )
+    cooldown = await fetchone(session, stmt)
     if cooldown:
-        _play_dice(player, cooldown.player, bot)
-        session.delete(cooldown)
+        await _play_dice(player, cooldown.player)
+        await session.delete(cooldown)
     else:
-        replies.add(
+        await player.send_message(
             text=(
                 "You sat down waiting for other players.\n"
                 f"If you won't find anyone, you'll leave in {human_time_duration(DICE_COOLDOWN)}"
@@ -49,7 +55,7 @@ def play_dice(player: Player, session, bot: DeltaBot, replies: Replies) -> None:
         )
 
 
-def _play_dice(player1: Player, player2: Player, bot) -> None:
+async def _play_dice(player1: Player, player2: Player) -> None:
     roll1 = roll_dice()
     roll2 = roll_dice()
     while sum(roll1) == sum(roll2):
@@ -76,9 +82,5 @@ def _play_dice(player1: Player, player2: Player, bot) -> None:
             f"{{}}{name1} won! {earned_gold:+}💰",
         ]
     )
-    send_message(
-        bot,
-        player1.id,
-        text=text.format("🎉 "),
-    )
-    send_message(bot, player2.id, text=text.format(""))
+    await player1.send_message(text=text.format("🎉 "))
+    await player2.send_message(text=text.format(""))

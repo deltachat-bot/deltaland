@@ -1,10 +1,13 @@
 """Cooldown loop logic"""
-
+import asyncio
+import logging
 import random
 import time
 
-from simplebot import DeltaBot
 from sqlalchemy import func
+from sqlalchemy.future import select
+from sqlalchemy.orm import selectinload
+from sqlalchemy.sql.expression import delete
 
 from .consts import (
     CAULDRON_GIFT,
@@ -29,79 +32,93 @@ from .orm import (
     Cooldown,
     DiceRank,
     Player,
-    session_scope,
+    async_session,
+    fetchone,
 )
 from .quests import get_quest
-from .util import calculate_thieve_gold, get_image, send_message
+from .util import calculate_thieve_gold, get_image
 
 
-def cooldown_loop(bot: DeltaBot) -> None:
+async def cooldown_loop() -> None:
     while True:
         try:
-            _check_cooldows(bot)
+            await _check_cooldows()
         except Exception as ex:
-            bot.logger.exception(ex)
-        time.sleep(1)
+            logging.exception(ex)
+        await asyncio.sleep(1)
 
 
-def _check_cooldows(bot: DeltaBot) -> None:
-    with session_scope() as session:
-        query = (
-            session.query(Cooldown)
-            .filter(Cooldown.ends_at <= time.time())
-            .order_by(Cooldown.ends_at)
-        )
-        for cooldown in query:
-            try:
-                if cooldown.player_id == WORLD_ID:
-                    _process_world_cooldown(bot, cooldown, session)
-                else:
-                    _process_player_cooldown(bot, cooldown, session)
-            except Exception as ex:
-                bot.logger.exception(ex)
+async def _check_cooldows() -> None:
+    async with async_session() as session:
+        async with session.begin():
+            stmt = (
+                select(Cooldown)
+                .filter(Cooldown.ends_at <= time.time())
+                .order_by(Cooldown.ends_at)
+            )
+            for cooldown in (await session.execute(stmt)).scalars():
+                try:
+                    if cooldown.player_id == WORLD_ID:
+                        await _process_world_cooldown(cooldown, session)
+                    else:
+                        await _process_player_cooldown(cooldown, session)
+                except Exception as ex:
+                    logging.exception(ex)
 
 
-def _process_world_cooldown(bot: DeltaBot, cooldown: Cooldown, session) -> None:
+async def _process_world_cooldown(cooldown: Cooldown, session) -> None:
     if cooldown.id == StateEnum.BATTLE:
-        _process_world_battle(bot, session)
+        await _process_world_battle(session)
         cooldown.ends_at = get_next_battle_timestamp(cooldown.ends_at)
     elif cooldown.id == StateEnum.DAY:
-        _process_world_cauldron(bot, session)
+        await _process_world_cauldron(session)
         cooldown.ends_at = get_next_day_timestamp()
     elif cooldown.id == StateEnum.MONTH:
-        session.query(DiceRank).delete()
-        session.query(BattleRank).delete()
+        await session.execute(delete(DiceRank))
+        await session.execute(delete(BattleRank))
         cooldown.ends_at = get_next_month_timestamp()
     elif cooldown.id == StateEnum.YEAR:
-        session.query(CauldronRank).delete()
+        await session.execute(delete(CauldronRank))
         cooldown.ends_at = get_next_year_timestamp()
     else:
-        bot.logger.warning(f"Unknown world state: {cooldown.id}")
-        session.delete(cooldown)
+        logging.warning("Unknown world state: %s", cooldown.id)
+        await session.delete(cooldown)
 
 
-def _process_world_cauldron(bot, session) -> None:
+async def _process_world_cauldron(session) -> None:
     winner = ""
-
-    for coin in session.query(CauldronCoin).order_by(func.random()):
+    stmt = (
+        select(CauldronCoin)
+        .order_by(func.random())
+        .options(selectinload(CauldronCoin.player))
+    )
+    for coin in (await session.execute(stmt)).scalars():
         player = coin.player
-        session.delete(coin)
-        send_message(
-            bot,
-            player.id,
+        await session.delete(coin)
+        await player.send_message(
             text=f"✨{winner or 'You'} received {CAULDRON_GIFT}💰 from the magic cauldron✨",
-            filename=None if winner else get_image("cauldron"),
+            file=None if winner else get_image("cauldron"),
         )
         if not winner:
             winner = player.get_name()
             player.gold += CAULDRON_GIFT
-            if not player.cauldron_rank:
-                player.cauldron_rank = CauldronRank(gold=0)
-            player.cauldron_rank.gold += CAULDRON_GIFT
+            cauldron_rank = await fetchone(
+                session, select(CauldronRank).filter_by(id=player.id)
+            )
+            if cauldron_rank:
+                cauldron_rank.gold += CAULDRON_GIFT
+            else:
+                player.cauldron_rank = CauldronRank(gold=CAULDRON_GIFT)
 
 
-def _process_world_battle(bot, session) -> None:
-    for player in Player.get_all(session):
+async def _process_world_battle(session) -> None:
+    stmt = (
+        Player.get_all()
+        .options(selectinload(Player.battle_tactic))
+        .options(selectinload(Player.battle_rank))
+        .options(selectinload(Player.cooldowns))
+    )
+    for player in (await session.execute(stmt)).scalars():
         victory = False
         monster_tactic = random.choice(list(CombatTactic))
         gold = random.randint((player.level + 1) // 2, player.level + 1)
@@ -109,7 +126,7 @@ def _process_world_battle(bot, session) -> None:
         hit_points = player.max_hp // 3
         if player.battle_tactic:
             tactic = player.battle_tactic.tactic
-            session.delete(player.battle_tactic)
+            await session.delete(player.battle_tactic)
         else:
             tactic = CombatTactic.NONE
         battle = BattleReport(
@@ -162,7 +179,7 @@ def _process_world_battle(bot, session) -> None:
             battle.hp = -player.reduce_hp(hit_points)  # -100% hit_points
 
         if battle.exp and player.increase_exp(battle.exp):  # level up
-            player.notify_level_up(bot)
+            await player.notify_level_up()
 
         player.battle_report = battle
         if victory:
@@ -171,17 +188,21 @@ def _process_world_battle(bot, session) -> None:
             player.battle_rank.victories += 1
 
 
-def _process_player_cooldown(bot: DeltaBot, cooldown: Cooldown, session) -> None:
-    player = cooldown.player
+async def _process_player_cooldown(cooldown: Cooldown, session) -> None:
+    stmt = (
+        select(Player)
+        .filter_by(id=cooldown.player_id)
+        .options(selectinload(Player.thief))
+        .options(selectinload(Player.cooldowns))
+    )
+    player = await fetchone(session, stmt)
     if cooldown.id == StateEnum.REST:
         if player.stamina < player.max_stamina:
             player.stamina += 1
         if player.stamina >= player.max_stamina:
-            session.delete(cooldown)
-            send_message(
-                bot,
-                player.id,
-                text="Stamina restored. You are ready for more adventures!",
+            await session.delete(cooldown)
+            await player.send_message(
+                text="Stamina restored. You are ready for more adventures!"
             )
         else:
             cooldown.ends_at = cooldown.ends_at + STAMINA_COOLDOWN
@@ -189,7 +210,7 @@ def _process_player_cooldown(bot: DeltaBot, cooldown: Cooldown, session) -> None
         if player.hp < player.max_hp:
             player.hp += 1
         if player.hp >= player.max_hp:
-            session.delete(cooldown)
+            await session.delete(cooldown)
         else:
             cooldown.ends_at = cooldown.ends_at + LIFEREGEN_COOLDOWN
     elif cooldown.id == StateEnum.NOTICED_THIEF:
@@ -198,10 +219,10 @@ def _process_player_cooldown(bot: DeltaBot, cooldown: Cooldown, session) -> None
         thief.gold += gold
         exp = random.randint(1, 3)
         if thief.increase_exp(exp):  # level up
-            thief.notify_level_up(bot)
+            await thief.notify_level_up()
 
         text = f"You let **{thief.get_name()}** rob the townsmen. We hope you feel terrible."
-        send_message(bot, player.id, text=text)
+        await player.send_message(text=text)
 
         text = (
             f"**{player.get_name()}** was completely clueless. You successfully stole some loot."
@@ -209,17 +230,17 @@ def _process_player_cooldown(bot: DeltaBot, cooldown: Cooldown, session) -> None
             f"💰Gold: {gold:+}\n"
             f"🔥Exp: {exp:+}\n"
         )
-        send_message(bot, thief.id, text=text)
+        await thief.send_message(text=text)
         player.stop_noticing()  # removes cooldown from session
     elif cooldown.id == StateEnum.PLAYING_DICE:
-        session.delete(cooldown)
+        await session.delete(cooldown)
         player.state = StateEnum.REST
         player.gold += DICE_FEE
-        send_message(bot, player.id, text="No one sat down next to you =/")
+        await player.send_message(text="No one sat down next to you =/")
     else:
         quest = get_quest(cooldown.id)
         if quest:
-            quest.end(bot, cooldown, session)
+            await quest.end(player, session)
         else:
-            bot.logger.warning(f"Unknown quest: {cooldown.id}")
-        session.delete(cooldown)
+            logging.warning("Unknown quest: %s", cooldown.id)
+        await session.delete(cooldown)

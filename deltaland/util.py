@@ -1,10 +1,12 @@
 """Utilities"""
+import logging
 import os
 import random
 import string
-from typing import Optional
+from typing import Union
 
-from simplebot.bot import DeltaBot, Replies
+from deltachat_rpc_client.rpc import JsonRpcError
+from simplebot_aio import Account, Contact
 
 _scope = __name__.split(".", maxsplit=1)[0]
 _images_dir = os.path.join(os.path.dirname(__file__), "images")
@@ -17,14 +19,6 @@ _TIME_DURATION_UNITS = (
 )
 
 
-def setdefault(bot: DeltaBot, key: str, value: Optional[str] = None) -> str:
-    val = bot.get(key, scope=_scope)
-    if val is None and value is not None:
-        bot.set(key, value, scope=_scope)
-        val = value
-    return val
-
-
 def is_valid_name(name: str) -> bool:
     valid_chars = string.ascii_letters + string.digits + " "
     for char in name:
@@ -34,14 +28,15 @@ def is_valid_name(name: str) -> bool:
     return 0 < len(name) <= 16
 
 
-def send_message(bot: DeltaBot, player_id: int, **kwargs) -> None:
+async def send_message(
+    contact: Union[int, Contact], account: Account = None, **kwargs
+) -> None:
+    if isinstance(contact, int):
+        contact = account.get_contact_by_id(contact)
     try:
-        replies = Replies(bot, bot.logger)
-        chat = bot.account.get_contact_by_id(player_id).create_chat()
-        replies.add(**kwargs, chat=chat)
-        replies.send_reply_messages()
-    except Exception as ex:
-        bot.logger.exception(ex)
+        await (await contact.create_chat()).send_message(**kwargs)
+    except JsonRpcError as err:
+        logging.exception(err)
 
 
 def human_time_duration(seconds: int, rounded: bool = True) -> str:
@@ -60,13 +55,6 @@ def human_time_duration(seconds: int, rounded: bool = True) -> str:
 
 def get_image(name: str) -> str:
     return os.path.join(_images_dir, f"{name}.webp")
-
-
-def get_database_path(bot: DeltaBot) -> str:
-    path = os.path.join(os.path.dirname(bot.account.db_path), _scope)
-    if not os.path.exists(path):
-        os.makedirs(path)
-    return os.path.join(path, "sqlite.db")
 
 
 def render_stats(atk: int, def_: int) -> str:

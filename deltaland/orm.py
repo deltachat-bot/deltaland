@@ -1,14 +1,17 @@
 """database"""
-# pylama:ignore=C0103
+# pylama:ignore=R0904,C0103
+import asyncio
 import time
-from contextlib import contextmanager
-from threading import Lock
-from typing import TYPE_CHECKING, Optional, Tuple
+from contextlib import asynccontextmanager
+from typing import TYPE_CHECKING, Any, Optional, Tuple
 
-from sqlalchemy import Column, ForeignKey, Integer, String, create_engine
+from simplebot_aio import AttrDict, Bot
+from sqlalchemy import Column, ForeignKey, Integer, String, func
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.ext.declarative import declarative_base, declared_attr
+from sqlalchemy.future import select
 from sqlalchemy.orm import backref, relationship, sessionmaker
-from sqlalchemy.orm.query import Query
+from sqlalchemy.sql.selectable import Select
 
 from .consts import (
     LIFEREGEN_COOLDOWN,
@@ -34,10 +37,11 @@ from .experience import required_exp
 from .util import get_image, render_stats, send_message
 
 if TYPE_CHECKING:
-    from deltachat import Message
-    from simplebot.bot import DeltaBot, Replies
-
     from .quests import Quest
+
+_session = None
+_bot: Bot
+_lock: asyncio.Lock
 
 
 class Base:
@@ -47,8 +51,6 @@ class Base:
 
 
 Base = declarative_base(cls=Base)  # noqa
-_Session = sessionmaker()
-_lock = Lock()
 
 
 class Game(Base):
@@ -145,6 +147,9 @@ class Player(Base):
         kwargs.setdefault("inv_size", STARTING_INV_SIZE)
         super().__init__(**kwargs)
 
+    async def send_message(self, **kwargs) -> None:
+        await send_message(self.id, _bot.account, **kwargs)
+
     def get_name(self, show_id: bool = False) -> str:
         name = self.name or "Stranger"
         return f"{name} (🆔{self.id})" if show_id else name
@@ -206,9 +211,8 @@ class Player(Base):
 
     def start_quest(self, quest: "Quest") -> None:
         self.state = quest.id
-        self.cooldowns.append(
-            Cooldown(id=quest.id, ends_at=time.time() + quest.duration)  # noqa
-        )
+        end = time.time() + quest.duration
+        self.cooldowns.append(Cooldown(id=quest.id, ends_at=end))  # noqa
         self.reduce_stamina(quest.stamina_cost)
 
     def start_noticing(self, thief: "Player") -> None:
@@ -235,73 +239,87 @@ class Player(Base):
         self.cooldowns.pop(index)
 
     @staticmethod
-    def get_all(session: sessionmaker) -> Query:
-        return session.query(Player).filter(Player.id > 0)
+    def get_all() -> Select:
+        return select(Player).filter(Player.id > 0)
 
     @staticmethod
-    def from_message(
-        message: "Message", session: sessionmaker, replies: "Replies"
+    def count() -> Select:
+        return select(func.count()).select_from(Player).filter(Player.id > 0)
+
+    @staticmethod
+    async def from_message(
+        msg: AttrDict, session: sessionmaker, options=None
     ) -> Optional["Player"]:
         """Get the player corresponding to a message.
 
         An error message is sent if the user have not joined the game yet
         """
-        player_id = message.get_sender_contact().id
-        player = session.query(Player).filter_by(id=player_id).first()
+        stmt = select(Player).filter_by(id=msg.sender.id)
+        for option in options or []:
+            stmt = stmt.options(option)
+        player = await fetchone(session, stmt)
         if player:
             return player
-        replies.add(text="❌ You have not joined the game yet, send /start")
+        await send_message(
+            msg.sender, text="❌ You have not joined the game yet, send /start"
+        )
         return None
 
-    def validate_level(self, required_level: int, replies: "Replies") -> bool:
+    async def validate_level(self, required_level: int) -> bool:
         if self.level >= required_level:
             return True
-        replies.add(text="🍼 Your level is too low to perform that action.")
+        await self.send_message(text="🍼 Your level is too low to perform that action.")
         return False
 
-    def validate_gold(self, required_gold: int, replies: "Replies") -> bool:
+    async def validate_gold(self, required_gold: int) -> bool:
         if self.gold >= required_gold:
             return True
-        replies.add(
+        await self.send_message(
             text="You don't even have enough gold for a pint of grog.\nWhy don't you get a job?"
         )
         return False
 
-    def validate_inv(self, session: sessionmaker, replies: "Replies") -> bool:
-        inv = (
-            session.query(Item)
+    async def used_inv_slots(self, session: sessionmaker) -> bool:
+        stmt = (
+            select(func.count())
+            .select_from(Item)
             .filter_by(player_id=self.id, slot=EquipmentSlot.BAG)
-            .count()
         )
+        return await fetchone(session, stmt)
 
+    async def validate_inv(self, session: sessionmaker) -> bool:
+        inv = await self.used_inv_slots(session)
         if inv < self.inv_size:
             return True
-        replies.add(text="Your bag is full.")
+        await self.send_message(text="Your bag is full.")
         return False
 
-    def validate_stamina(self, required_stamina: int, replies: "Replies") -> bool:
+    async def validate_stamina(self, required_stamina: int) -> bool:
         if self.stamina >= required_stamina:
             return True
-        replies.add(text="Not enough stamina. Come back after you take a rest.")
+        await self.send_message(
+            text="Not enough stamina. Come back after you take a rest."
+        )
         return False
 
-    def validate_hp(self, replies: "Replies") -> bool:
+    async def validate_hp(self) -> bool:
         if self.hp >= min(self.max_hp / 4, 100):
             return True
-        replies.add(text="You need to heal your wounds and recover, come back later.")
+        await self.send_message(
+            text="You need to heal your wounds and recover, come back later."
+        )
         return False
 
-    def validate_resting(
-        self, session: sessionmaker, replies: "Replies", ignore_battle: bool = False
+    async def validate_resting(
+        self,
+        session: sessionmaker,
+        ignore_battle: bool = False,
     ) -> bool:
         if not ignore_battle:
-            remaining_time = (
-                session.query(Cooldown)
-                .filter_by(id=StateEnum.BATTLE, player_id=WORLD_ID)
-                .first()
-            ).ends_at - time.time()
+            stmt = select(Cooldown).filter_by(id=StateEnum.BATTLE, player_id=WORLD_ID)
+            remaining_time = (await fetchone(session, stmt)).ends_at - time.time()
             if remaining_time <= 60 * 10:
-                replies.add(
+                await self.send_message(
                     text="Goblin are about to attack. You have no time for games."
                 )
                 return False
@@ -309,22 +327,22 @@ class Player(Base):
         if self.state == StateEnum.REST:
             return True
 
-        replies.add(
+        await self.send_message(
             text="You are too busy with a different adventure. Try a bit later."
         )
         return False
 
-    def get_equipment_stats(self, session: sessionmaker) -> Tuple[int, int]:
-        query = session.query(Item).filter(
+    async def get_equipment_stats(self, session: sessionmaker) -> Tuple[int, int]:
+        stmt = select(Item).filter(
             Item.player_id == self.id, Item.slot != EquipmentSlot.BAG
         )
         atk, def_ = 0, 0
-        for item in query:
+        for item in (await session.execute(stmt)).scalars():
             atk += item.attack or 0
             def_ += item.defense or 0
         return atk, def_
 
-    def notify_level_up(self, bot: "DeltaBot") -> None:
+    async def notify_level_up(self) -> None:
         text = f"🎉 Congratulations! You reached level {self.level}!\n"
         if self.level == 2:
             text += (
@@ -335,7 +353,7 @@ class Player(Base):
         elif self.level == 3:
             text += "- New quest Thieve unlocked!\n- You can learn how other players are doing via the leaderboards at /top"
             text += "\n\n**WARNING:** Work in progress, level 3 is the maximum level for now."
-        send_message(bot, self.id, text=text, filename=get_image("level-up"))
+        await self.send_message(text=text, file=get_image("level-up"))
 
     def get_battle_report(self) -> str:
         battle = self.battle_report
@@ -515,23 +533,25 @@ class SentinelRank(Base):
     stopped = Column(Integer, nullable=False)
 
 
-@contextmanager
-def session_scope():
-    """Provide a transactional scope around a series of operations."""
-    with _lock:
-        session = _Session()
-        try:
+@asynccontextmanager
+async def async_session():
+    """Get session"""
+    async with _lock:
+        async with _session() as session:
             yield session
-            session.commit()
-        except:
-            session.rollback()
-            raise
-        finally:
-            session.close()
 
 
-def init(path: str, debug: bool = False) -> None:
+async def init_db_engine(bot: Bot, path: str, debug: bool = False) -> None:
     """Initialize engine."""
-    engine = create_engine(path, echo=debug)
-    Base.metadata.create_all(engine)  # noqa
-    _Session.configure(bind=engine)
+    global _session, _bot, _lock  # noqa
+    engine = create_async_engine(path, echo=debug)
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)  # noqa
+
+    _session = sessionmaker(engine, expire_on_commit=False, class_=AsyncSession)
+    _bot = bot
+    _lock = asyncio.Lock()
+
+
+async def fetchone(session: sessionmaker, stmt: Select) -> Any:
+    return (await session.execute(stmt.limit(1))).scalars().first()

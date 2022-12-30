@@ -1,31 +1,28 @@
 """Database migrations"""
+import logging
 import os
 import sqlite3
 
-from simplebot.bot import DeltaBot
-
 from .consts import DATABASE_VERSION, STARTING_INV_SIZE
-from .util import get_database_path
 
 
-def run_migrations(bot: DeltaBot) -> None:
-    path = get_database_path(bot)
-    if not os.path.exists(path):
-        bot.logger.debug("Database doesn't exists, skipping migrations")
+def run_migrations(dbpath: str) -> None:
+    if not os.path.exists(dbpath):
+        logging.debug("Database doesn't exists, skipping migrations")
         return
 
-    database = sqlite3.connect(path)
+    database = sqlite3.connect(dbpath)
     database.row_factory = sqlite3.Row
     try:
         version = database.execute("SELECT * FROM game").fetchone()["version"]
-        bot.logger.debug(f"Current database version: v{version}")
+        logging.debug("Current database version: v%s", version)
         for i in range(version + 1, DATABASE_VERSION + 1):
             migration = globals().get(f"migrate{i}")
             assert migration
-            bot.logger.info(f"Migrating database: v{i}")
+            logging.info("Migrating database: v%s", i)
             with database:
                 database.execute("UPDATE game SET version=?", (i,))
-                migration(database, bot.logger)
+                migration(database)
     finally:
         database.close()
 

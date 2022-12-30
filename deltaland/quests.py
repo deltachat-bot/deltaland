@@ -1,19 +1,16 @@
 """Game quests"""
 # pylama:ignore=C0103
 import random
-from typing import TYPE_CHECKING, List, Optional
+from dataclasses import dataclass
+from typing import List, Optional
 
+from simplebot_aio import AttrDict
 from sqlalchemy import func
+from sqlalchemy.orm import selectinload
 
 from .consts import Quality, StateEnum
-from .orm import Player, session_scope
-from .util import calculate_thieve_gold, human_time_duration, send_message
-
-if TYPE_CHECKING:
-    from deltachat import Message
-    from simplebot.bot import DeltaBot, Replies
-
-    from .orm import Cooldown
+from .orm import Player, async_session, fetchone
+from .util import calculate_thieve_gold, human_time_duration
 
 
 class QuestResult:
@@ -26,55 +23,49 @@ class QuestResult:
         self.hp = hp
 
 
+@dataclass
 class Quest:
-    def __init__(
-        self,
-        id: int,  # noqa
-        command_name: str,
-        name: str,
-        description: str,
-        status_msg: str,
-        parting_msg: str,
-        duration: int,
-        stamina_cost: int,
-        required_level: int,
-    ) -> None:
-        self.id = id  # noqa
-        self.command_name = command_name
-        self.name = name
-        self.description = description
-        self.status_msg = status_msg
-        self.parting_msg = parting_msg
-        self.stamina_cost = stamina_cost
-        self.duration = duration
-        self.required_level = required_level
+    id: int
+    command_name: str
+    name: str
+    description: str
+    status_msg: str
+    parting_msg: str
+    duration: int
+    stamina_cost: int
+    required_level: int
 
-    def command(self, message: "Message", replies: "Replies") -> None:
+    async def command(self, event: AttrDict) -> None:
         """Command to start the quest"""
-        with session_scope() as session:
-            player = Player.from_message(message, session, replies)
-            if (
-                not player
-                or not player.validate_level(self.required_level, replies)
-                or not player.validate_resting(session, replies)
-                or not player.validate_hp(replies)
-                or not player.validate_stamina(self.stamina_cost, replies)
-            ):
-                return
+        async with async_session() as session:
+            async with session.begin():
+                player = await Player.from_message(
+                    event.message_snapshot, session, [selectinload(Player.cooldowns)]
+                )
+                if (
+                    not player
+                    or not await player.validate_level(self.required_level)
+                    or not await player.validate_resting(session)
+                    or not await player.validate_hp()
+                    or not await player.validate_stamina(self.stamina_cost)
+                ):
+                    return
+                player.start_quest(self)
 
-            player.start_quest(self)
-            duration = human_time_duration(self.duration, rounded=False)
-            replies.add(text=f"{self.parting_msg}. You will be back in {duration}")
+        duration = human_time_duration(self.duration, rounded=False)
+        await player.send_message(
+            text=f"{self.parting_msg}. You will be back in {duration}"
+        )
 
-    def end(self, bot: "DeltaBot", cooldown: "Cooldown", session) -> None:  # noqa
+    async def end(self, player: "Player", session) -> None:  # noqa
         """End the quest."""
-        player = cooldown.player
         result = self.get_result(player)
+
         text = f"{result.description}\n\n"
         if result.exp:
             text += f"🔥Exp: {result.exp:+}\n"
             if player.increase_exp(result.exp):  # level up
-                player.notify_level_up(bot)
+                await player.notify_level_up()
         if result.gold:
             text += f"💰Gold: {result.gold:+}\n"
             player.gold += result.gold
@@ -87,7 +78,7 @@ class Quest:
                 text += f"❤️HP: {result.hp:+}\n"
 
         player.state = StateEnum.REST
-        send_message(bot, player.id, text=text)
+        await player.send_message(text=text)
 
     def get_result(self, player: "Player") -> QuestResult:  # noqa
         """End the quest."""
@@ -108,26 +99,25 @@ class ThieveQuest(Quest):
             required_level=3,
         )
 
-    def end(self, bot: "DeltaBot", cooldown: "Cooldown", session) -> None:
-        thief = cooldown.player
-        sentinel = (
-            Player.get_all(session)
+    async def end(self, player: "Player", session) -> None:
+        thief = player
+        stmt = (
+            Player.get_all()
+            .options(selectinload(Player.cooldowns))
             .filter_by(state=StateEnum.REST)
             .order_by(func.random())
-            .first()
         )
+        sentinel = await fetchone(session, stmt)
         if sentinel:
-            send_message(
-                bot,
-                sentinel.id,
+            await sentinel.send_message(
                 text=f"You were wandering around when you noticed **{thief.get_name()}**"
-                " trying to rob some townsmen.\n\n🛑 /interfere",
+                " trying to rob some townsmen.\n\n🛑 /interfere"
             )
             text = (
                 f"Close to the place you are robbing you spotted warrior **{sentinel.get_name()}**."
                 f" Let's hope **{sentinel.get_name()}** won't notice you."
             )
-            send_message(bot, thief.id, text=text)
+            await thief.send_message(text=text)
             sentinel.start_noticing(thief)
         else:
             thief.state = StateEnum.REST
@@ -135,13 +125,13 @@ class ThieveQuest(Quest):
             thief.gold += gold
             exp = random.randint(1, 3)
             if thief.increase_exp(exp):  # level up
-                thief.notify_level_up(bot)
+                await thief.notify_level_up()
             text = (
                 "Nobody noticed you. You successfully stole some loot. You feel great.\n\n"
                 f"💰Gold: {gold:+}\n"
                 f"🔥Exp: {exp:+}\n"
             )
-            send_message(bot, thief.id, text=text)
+            await thief.send_message(text=text)
 
 
 class TownQuest(Quest):

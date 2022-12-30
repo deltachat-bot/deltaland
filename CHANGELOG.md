@@ -2,6 +2,7 @@
 
 ## [Unreleased]
 
+- project converted from simplebot plugin to independent bot using asynchronous programming
 - add /inv command to see inventory and equipment
 - add /shop command to visit the shop and allow to /buy and /sell items
 - add /on and /off commands to equip and unequip items
@@ -17,4 +18,4 @@
 - initial release
 
 
-[Unreleased]: https://github.com/adbenitez/simplebot_deltaland/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/adbenitez/deltaland/compare/v0.1.0...HEAD

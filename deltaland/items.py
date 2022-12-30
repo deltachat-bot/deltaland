@@ -5,8 +5,8 @@ from .orm import BaseItem
 shop_items = {1: 3, 2: 3}
 
 
-def init_items(session) -> None:
-    session.merge(
+async def init_items(session) -> None:
+    await session.merge(
         BaseItem(
             id=1,
             type=ItemType.SWORD,
@@ -15,7 +15,7 @@ def init_items(session) -> None:
             attack=1,
         )
     )
-    session.merge(
+    await session.merge(
         BaseItem(
             id=2,
             type=ItemType.SHIELD,
