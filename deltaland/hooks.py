@@ -95,10 +95,7 @@ async def log_event(event: AttrDict) -> None:
 
 @cli.on(events.NewMessage(is_info=False, func=is_not_known_command))
 async def filter_messages(event: AttrDict) -> None:
-    """Deltaland bot.
-
-    A game-bot that allows you to join the deltaland world and play with people all over the world.
-    """
+    """Fallback to /me if the message was not understood."""
     chat = await event.message_snapshot.chat.get_basic_snapshot()
     if chat.chat_type == const.ChatType.SINGLE:
         await me_cmd(event)
@@ -119,10 +116,7 @@ async def help_cmd(event: AttrDict) -> None:
 
 @cli.on(events.NewMessage(command="/start"))
 async def start_cmd(event: AttrDict) -> None:
-    """Start the game.
-
-    Send this command to join the game.
-    """
+    """Start the game."""
     msg = event.message_snapshot
     async with async_session() as session:
         async with session.begin():
