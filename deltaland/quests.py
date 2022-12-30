@@ -102,7 +102,7 @@ class ThieveQuest(Quest):
     async def end(self, player: "Player", session) -> None:
         thief = player
         stmt = (
-            Player.get_all()
+            Player.get_all_active()
             .options(selectinload(Player.cooldowns))
             .filter_by(state=StateEnum.REST)
             .order_by(func.random())

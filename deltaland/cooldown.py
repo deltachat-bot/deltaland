@@ -113,7 +113,7 @@ async def _process_world_cauldron(session) -> None:
 
 async def _process_world_battle(session) -> None:
     stmt = (
-        Player.get_all()
+        Player.get_all_active()
         .options(selectinload(Player.battle_tactic))
         .options(selectinload(Player.battle_rank))
         .options(selectinload(Player.cooldowns))

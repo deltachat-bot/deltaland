@@ -125,7 +125,7 @@ async def start_cmd(event: AttrDict) -> None:
                 already_joined = True
             else:
                 already_joined = False
-                player = Player(id=msg.sender.id, birthday=int(time.time()))
+                player = Player(id=msg.sender.id)
                 if event.payload == "confirm":
                     session.add(player)
 

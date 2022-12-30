@@ -13,6 +13,7 @@
 - allow to reset name
 - set cauldron gift to a fixed amount
 - show game rules before joining
+- track player's last activity and don't send messages to the player after 30 days of inactivity
 
 ## v0.1.0
 

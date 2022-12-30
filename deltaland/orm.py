@@ -80,6 +80,7 @@ class Player(Base):
     state = Column(Integer)
     thief_id = Column(Integer, ForeignKey("player.id"))
     inv_size = Column(Integer)
+    last_seen = Column(Integer)
     thief = relationship(
         "Player",
         uselist=False,
@@ -145,6 +146,8 @@ class Player(Base):
         kwargs.setdefault("gold", STARTING_GOLD)
         kwargs.setdefault("state", StateEnum.REST)
         kwargs.setdefault("inv_size", STARTING_INV_SIZE)
+        kwargs.setdefault("birthday", int(time.time()))
+        kwargs.setdefault("last_seen", kwargs["birthday"])
         super().__init__(**kwargs)
 
     async def send_message(self, **kwargs) -> None:
@@ -243,6 +246,11 @@ class Player(Base):
         return select(Player).filter(Player.id > 0)
 
     @staticmethod
+    def get_all_active() -> Select:
+        one_month_ago = int(time.time()) - 60 * 60 * 24 * 30
+        return select(Player).filter(Player.id > 0, Player.last_seen > one_month_ago)
+
+    @staticmethod
     def count() -> Select:
         return select(func.count()).select_from(Player).filter(Player.id > 0)
 
@@ -259,6 +267,7 @@ class Player(Base):
             stmt = stmt.options(option)
         player = await fetchone(session, stmt)
         if player:
+            player.last_seen = int(time.time())
             return player
         text = (
             "You have not joined the game yet.\n\n"

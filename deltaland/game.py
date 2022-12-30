@@ -20,7 +20,7 @@ async def init_game() -> None:
 
             world = await fetchone(session, select(Player).filter_by(id=WORLD_ID))
             if not world:
-                world = Player(id=WORLD_ID, birthday=int(time.time()))
+                world = Player(id=WORLD_ID, last_seen=0)
                 session.add(world)
 
             if not await fetchone(
