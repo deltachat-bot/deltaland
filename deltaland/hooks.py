@@ -132,22 +132,37 @@ async def start_cmd(event: AttrDict) -> None:
             else:
                 already_joined = False
                 player = Player(id=msg.sender.id, birthday=time.time())
-                session.add(player)
+                if event.payload == "confirm":
+                    session.add(player)
 
     if already_joined:
         await player.send_message(text="❌ You already joined the game")
-    else:
+    elif event.payload == "confirm":
         lines = [
-            "Welcome to Deltaland, a fantasy world full of adventures and fun!",
-            "",
-            "You have just arrived to the **Gundor Castle**. It is a lively community surrounded by lush forest and rolling hills.",
-            "",
+            "Welcome to Deltaland, a fantasy world full of adventures and fun!\n",
+            "You have just arrived to the **Gundor Castle**. It is a lively community"
+            " surrounded by lush forest and rolling hills.\n",
             "To set your in-game name, type in /name followed by your name, for example:",
-            "/name Thenali Ldulir",
-            "",
+            "/name Thenali Ldulir\n",
             "To see your status send: /me",
         ]
         await player.send_message(text="\n".join(lines), file=get_image("splash"))
+    else:
+        lines = [
+            "**⚠️Terms & Conditions**\n",
+            "🛑 Forbidden:",
+            "1. Scripts, automating, bots",
+            "2. Multiple accounts",
+            "3. Bug abusing without reporting them at https://github.com/adbenitez/deltaland",
+            "4. Character and other in-game values trading",
+            "5. Personal insults\n",
+            "The game is provided AS IS. If you don't like it - you can simply not play it.",
+            "Main principles - fair play. Don't cheat and don't try to find a hole in the rules.\n",
+            "For breaking the rules, different sanctions may apply, up to permament in-game ban.",
+            "Administration has the right to refuse access to the game to any player.\n",
+            "Accept Terms: /start_confirm",
+        ]
+        await player.send_message(text="\n".join(lines))
 
 
 @cli.on(events.NewMessage(command="/name"))

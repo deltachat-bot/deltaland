@@ -260,9 +260,12 @@ class Player(Base):
         player = await fetchone(session, stmt)
         if player:
             return player
-        await send_message(
-            msg.sender, text="❌ You have not joined the game yet, send /start"
+        text = (
+            "You have not joined the game yet.\n\n"
+            "Send /start to join the game\n"
+            "Send /help for more info"
         )
+        await send_message(msg.sender, text=text)
         return None
 
     async def validate_level(self, required_level: int) -> bool:
