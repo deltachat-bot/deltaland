@@ -51,21 +51,10 @@ from .util import (
 )
 
 cli = BotCli("deltaland")
-_hooks: dict
-
-
-def is_not_known_command(event: AttrDict) -> bool:
-    for hook in _hooks.get(events.NewMessage, []):
-        cmd = hook[1].command
-        if cmd and event.command == cmd:
-            return False
-    return True
 
 
 @cli.on_init
 async def on_init(bot: Bot, _args: Namespace) -> None:
-    global _hooks
-    _hooks = bot._hooks  # noqa
     for quest in quests:
         bot.add_hook(quest.command, events.NewMessage(command=quest.command_name))
 
@@ -93,7 +82,7 @@ async def log_event(event: AttrDict) -> None:
     getattr(logging, event.type.lower())(event.msg)
 
 
-@cli.on(events.NewMessage(is_info=False, func=is_not_known_command))
+@cli.on(events.NewMessage(is_info=False, func=cli.is_not_known_command))
 async def filter_messages(event: AttrDict) -> None:
     """Fallback to /me if the message was not understood."""
     chat = await event.message_snapshot.chat.get_basic_snapshot()
