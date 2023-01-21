@@ -20,4 +20,4 @@
 - initial release
 
 
-[Unreleased]: https://github.com/adbenitez/deltaland/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/simplebot-org/deltaland/compare/v0.1.0...HEAD
