@@ -1,9 +1,11 @@
 <div align="center"><img height="200" width="260" src="https://github.com/simplebot-org/deltaland/raw/master/images/banner.png"></div>
 <h1 align="center">Deltaland</h1>
 
+<!-- 
 [![Latest Release](https://img.shields.io/pypi/v/deltaland.svg)](https://pypi.org/project/deltaland)
 [![Supported Versions](https://img.shields.io/pypi/pyversions/deltaland.svg)](https://pypi.org/project/deltaland)
 [![License](https://img.shields.io/pypi/l/deltaland.svg)](https://pypi.org/project/deltaland)
+-->
 [![CI](https://github.com/simplebot-org/deltaland/actions/workflows/python-ci.yml/badge.svg)](https://github.com/simplebot-org/deltaland/actions/workflows/python-ci.yml)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 [![Contributors](https://img.shields.io/github/contributors/simplebot-org/deltaland.svg)](https://github.com/simplebot-org/deltaland/graphs/contributors)
