@@ -22,7 +22,7 @@ dynamic = [
     "version"
 ]
 dependencies = [
-    "SQLAlchemy>=1.4.44",
+    "SQLAlchemy>=1.4.44,<2.0",
     "aiosqlite>=0.17.0",
     "aiofiles>=22.1.0",
     "simplebot-aio @ git+https://github.com/simplebot-org/simplebot-aio.git",
