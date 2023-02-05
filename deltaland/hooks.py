@@ -340,7 +340,7 @@ async def report_cmd(event: AttrDict) -> None:
             return
 
     if not player.battle_report:
-        await player.send_message(text="You were not in the town in the last battle.")
+        await player.send_message(text="You didn't participate in the last battle.")
     else:
         await player.send_message(
             text=player.get_battle_report(), file=get_image("goblin")

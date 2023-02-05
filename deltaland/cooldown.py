@@ -27,6 +27,7 @@ from .game import (
 from .orm import (
     BattleRank,
     BattleReport,
+    BattleTactic,
     CauldronCoin,
     CauldronRank,
     Cooldown,
@@ -112,23 +113,21 @@ async def _process_world_cauldron(session) -> None:
 
 
 async def _process_world_battle(session) -> None:
-    stmt = (
-        Player.get_all_active()
-        .options(selectinload(Player.battle_tactic))
+    await session.execute(delete(BattleReport))  # clear old reports
+    stmt = select(BattleTactic).options(
+        selectinload(BattleTactic.player)
         .options(selectinload(Player.battle_rank))
         .options(selectinload(Player.cooldowns))
     )
-    for player in (await session.execute(stmt)).scalars():
+    for battle_tactic in (await session.execute(stmt)).scalars():
+        player = battle_tactic.player
+        tactic = battle_tactic.tactic
+        await session.delete(battle_tactic)
         victory = False
         monster_tactic = random.choice(list(CombatTactic))
         gold = random.randint((player.level + 1) // 2, player.level + 1)
         base_exp = random.randint((player.level + 1) // 2, player.level + 1)
         hit_points = player.max_hp // 3
-        if player.battle_tactic:
-            tactic = player.battle_tactic.tactic
-            await session.delete(player.battle_tactic)
-        else:
-            tactic = CombatTactic.NONE
         battle = BattleReport(
             tactic=tactic, monster_tactic=monster_tactic, exp=0, gold=0, hp=0
         )
@@ -143,14 +142,10 @@ async def _process_world_battle(session) -> None:
                 player.gold += battle.gold
             else:  # monster_tactic == CombatTactic.PARRY
                 battle.exp = max(base_exp // 4, 1)  # +25% Exp
-                battle.gold = -min(player.gold, gold)
-                player.gold += battle.gold
                 battle.hp = -player.reduce_hp(hit_points)  # -100% hit_points
         elif tactic == CombatTactic.FEINT:
             if monster_tactic == CombatTactic.HIT:
                 battle.exp = max(base_exp // 4, 1)  # +25% Exp
-                battle.gold = -min(player.gold, gold)
-                player.gold += battle.gold
                 battle.hp = -player.reduce_hp(hit_points)  # -100% hit_points
             elif monster_tactic == CombatTactic.FEINT:
                 battle.exp = max(base_exp // 2, 1)  # +50% Exp
@@ -168,15 +163,9 @@ async def _process_world_battle(session) -> None:
                 player.gold += battle.gold
             elif monster_tactic == CombatTactic.FEINT:
                 battle.exp = max(base_exp // 4, 1)  # +25% Exp
-                battle.gold = -min(player.gold, gold)
-                player.gold += battle.gold
                 battle.hp = -player.reduce_hp(hit_points)  # -100% hit_points
             else:  # monster_tactic == CombatTactic.PARRY
                 battle.exp = max(base_exp // 4, 1)  # +25% Exp
-        else:  # didn't defend the castle
-            battle.gold = -min(player.gold, gold)
-            player.gold += battle.gold
-            battle.hp = -player.reduce_hp(hit_points)  # -100% hit_points
 
         if battle.exp and player.increase_exp(battle.exp):  # level up
             await player.notify_level_up()

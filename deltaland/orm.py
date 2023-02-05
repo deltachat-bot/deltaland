@@ -379,10 +379,6 @@ class Player(Base):
         )
         win_msg = "You killed the goblin. On his cold corpse you found some gold."
         lose_msg = "The blow was so strong that you fainted."
-        if battle.gold:
-            lose_msg += " The goblin took as much gold as he could before other warriors could aid you."
-        else:
-            lose_msg += " The goblin was disappointed to see you didn't have a single gold coin in your pocket"
         hit_result = "{loser} feints but is defeated by {winner}'s hit!"
         feint_result = "{loser} tries to parry, but {winner} feints and hits!"
         parry_result = "{loser} tries to hit {winner}, but {winner} parries the attack and counterattacks!"
