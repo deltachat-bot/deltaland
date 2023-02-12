@@ -1,10 +1,9 @@
 """Utilities"""
-import asyncio
 import logging
 import os
 import random
 import string
-from typing import Coroutine, Union
+from typing import Union
 
 from deltachat_rpc_client.rpc import JsonRpcError
 from simplebot_aio import Account, Contact
@@ -18,16 +17,6 @@ _TIME_DURATION_UNITS = (
     ("min", 60),
     ("sec", 1),
 )
-_background_tasks = set()
-
-
-def run_in_background(coro: Coroutine) -> None:
-    """Schedule the execution of a coroutine object in a spawn task, keeping a
-    reference to the task to avoid it disappearing mid-execution due to GC.
-    """
-    task = asyncio.create_task(coro)
-    _background_tasks.add(task)
-    task.add_done_callback(_background_tasks.discard)
 
 
 def is_valid_name(name: str) -> bool:

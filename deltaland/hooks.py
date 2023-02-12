@@ -6,7 +6,15 @@ import random
 import time
 from argparse import Namespace
 
-from simplebot_aio import AttrDict, Bot, BotCli, EventType, const, events
+from simplebot_aio import (
+    AttrDict,
+    Bot,
+    BotCli,
+    EventType,
+    const,
+    events,
+    run_in_background,
+)
 from sqlalchemy.future import select
 from sqlalchemy.orm import selectinload
 
@@ -47,7 +55,6 @@ from .util import (
     human_time_duration,
     is_valid_name,
     render_stats,
-    run_in_background,
 )
 
 cli = BotCli("deltaland")
