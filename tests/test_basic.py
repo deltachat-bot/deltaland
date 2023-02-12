@@ -26,12 +26,13 @@ async def get_next_message(account):
 async def test_filter(acfactory, tmp_path) -> None:
     user = (await acfactory.get_online_accounts(1))[0]
     bot = await acfactory.new_configured_bot()
-    bot_chat = await user.create_contact(await bot.get_config("addr"))
+    bot_chat = await user.create_contact(await bot.account.get_config("addr"))
     await init_cli(bot, str(tmp_path))
+    NOT_JOINED = "you have not joined the game yet"
 
     await bot_chat.send_text("hello")
     msg = get_next_message(user)
-    assert "you have not joined the game yet" in msg.text.lower()
+    assert NOT_JOINED in msg.text.lower()
 
     await bot_chat.send_text("/start_confirm")
     msg = get_next_message(user)
@@ -39,5 +40,5 @@ async def test_filter(acfactory, tmp_path) -> None:
 
     await bot_chat.send_text("hello")
     msg = get_next_message(user)
-    assert "you have not joined the game yet" not in msg.text.lower()
+    assert NOT_JOINED not in msg.text.lower()
     assert "🏅level" not in msg.text.lower()
