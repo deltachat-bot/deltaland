@@ -137,7 +137,7 @@ async def start_cmd(event: AttrDict) -> None:
             "🛑 Forbidden:",
             "1. Scripts, automating, bots",
             "2. Multiple accounts",
-            "3. Bug abusing without reporting them at https://github.com/adbenitez/deltaland",
+            "3. Bug abusing without reporting them at https://github.com/deltachat-bot/deltaland",
             "4. Character and other in-game values trading",
             "5. Personal insults\n",
             "The game is provided AS IS. If you don't like it - you can simply not play it.",
