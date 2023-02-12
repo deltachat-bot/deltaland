@@ -36,6 +36,7 @@ dev = [
   "pylint",
   "pylama",
   "pytest",
+  "pytest_asyncio",
   "types-aiofiles",
 ]
 
