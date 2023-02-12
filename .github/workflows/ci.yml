@@ -36,6 +36,8 @@ jobs:
         rustup override set 1.64.0
         cargo install --git https://github.com/deltachat/deltachat-core-rust/ deltachat-rpc-server
     - name: Test with pytest
+      env:
+        DCC_NEW_TMP_EMAIL: ${{ secrets.DCC_NEW_TMP_EMAIL }}
       run: |
         pytest
 
