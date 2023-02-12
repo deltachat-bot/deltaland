@@ -5,7 +5,7 @@ import time
 from contextlib import asynccontextmanager
 from typing import TYPE_CHECKING, Any, Optional, Tuple
 
-from simplebot_aio import AttrDict, Bot
+from deltabot_cli import AttrDict, Bot
 from sqlalchemy import Column, ForeignKey, Integer, String, func
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.ext.declarative import declarative_base, declared_attr

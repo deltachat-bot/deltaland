@@ -6,7 +6,7 @@ import random
 import time
 from argparse import Namespace
 
-from simplebot_aio import AttrDict, Bot, BotCli, EventType, const, events
+from deltabot_cli import AttrDict, Bot, BotCli, EventType, const, events
 from sqlalchemy.future import select
 from sqlalchemy.orm import selectinload
 

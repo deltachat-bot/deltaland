@@ -1,7 +1,7 @@
 from unittest.mock import MagicMock
 
 import pytest
-from simplebot_aio import EventType
+from deltabot_cli import EventType
 
 from deltaland.hooks import cli
 

@@ -6,8 +6,8 @@ import random
 import string
 from typing import Coroutine, Union
 
+from deltabot_cli import Account, Contact
 from deltachat_rpc_client.rpc import JsonRpcError
-from simplebot_aio import Account, Contact
 
 _scope = __name__.split(".", maxsplit=1)[0]
 _images_dir = os.path.join(os.path.dirname(__file__), "images")

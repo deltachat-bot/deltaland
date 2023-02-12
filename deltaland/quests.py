@@ -4,7 +4,7 @@ import random
 from dataclasses import dataclass
 from typing import List, Optional
 
-from simplebot_aio import AttrDict
+from deltabot_cli import AttrDict
 from sqlalchemy import func
 from sqlalchemy.orm import selectinload
 
