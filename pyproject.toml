@@ -22,7 +22,7 @@ dynamic = [
     "version"
 ]
 dependencies = [
-    "SQLAlchemy>=1.4.44,<2.0",
+    "SQLAlchemy>=1.4.44,<3.0",
     "aiosqlite>=0.17.0",
     "aiofiles>=22.1.0",
     "deltabot-cli @ git+https://github.com/deltachat-bot/deltabot-cli.git",
