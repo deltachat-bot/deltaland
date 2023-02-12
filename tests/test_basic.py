@@ -1,3 +1,4 @@
+from argparse import Namespace
 from unittest.mock import MagicMock
 
 import pytest
