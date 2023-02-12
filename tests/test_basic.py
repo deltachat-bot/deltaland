@@ -27,7 +27,9 @@ async def get_next_message(account):
 async def test_filter(acfactory, tmp_path) -> None:
     user = (await acfactory.get_online_accounts(1))[0]
     bot = await acfactory.new_configured_bot()
-    bot_chat = await user.create_contact(await bot.account.get_config("addr"))
+    bot_chat = await (
+        await user.create_contact(await bot.account.get_config("addr"))
+    ).create_chat()
     await init_cli(bot, str(tmp_path))
     NOT_JOINED = "you have not joined the game yet"
 
