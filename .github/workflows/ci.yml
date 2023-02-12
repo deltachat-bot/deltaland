@@ -34,7 +34,7 @@ jobs:
       run: |
         rustup toolchain install 1.64.0
         rustup override set 1.64.0
-        cargo install --git https://github.com/deltachat/deltachat-core-rust/ --bin deltachat-rpc-server
+        cargo install --bin deltachat-rpc-server --git https://github.com/deltachat/deltachat-core-rust/
     - name: Test with pytest
       run: |
         pytest
