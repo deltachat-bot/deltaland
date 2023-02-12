@@ -2,6 +2,7 @@
 import logging
 import os
 import sqlite3
+import time
 
 from .consts import DATABASE_VERSION, STARTING_INV_SIZE
 
@@ -34,8 +35,6 @@ def migrate5(database: sqlite3.Connection) -> None:
 
 
 def migrate6(database: sqlite3.Connection) -> None:
-    import time
-
     now = int(time.time())
     database.execute(f"ALTER TABLE player ADD COLUMN last_seen INTEGER DEFAULT {now}")
     database.execute("UPDATE player SET last_seen=0 WHERE id=0")
