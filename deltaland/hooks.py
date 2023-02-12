@@ -1,6 +1,5 @@
 """hooks, filters and commands definitions."""
 # pylama:ignore=W0603,C0103
-import asyncio
 import logging
 import os
 import random
@@ -48,6 +47,7 @@ from .util import (
     human_time_duration,
     is_valid_name,
     render_stats,
+    run_in_background,
 )
 
 cli = BotCli("deltaland")
@@ -74,7 +74,8 @@ async def on_start(bot: Bot, args: Namespace) -> None:
     run_migrations(path)
     await init_db_engine(bot, f"sqlite+aiosqlite:///{path}")
     await init_game()
-    asyncio.create_task(cooldown_loop())
+    logging.info("Listening for messages at: %s", await bot.account.get_config("addr"))
+    run_in_background(cooldown_loop())
 
 
 @cli.on(events.RawEvent((EventType.INFO, EventType.WARNING, EventType.ERROR)))
