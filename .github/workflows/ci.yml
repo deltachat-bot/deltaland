@@ -30,6 +30,11 @@ jobs:
     - name: Lint code
       run: |
         pylama
+    - name: Install deltachat-rpc-server
+      run: |
+        rustup toolchain install 1.64.0
+        rustup override set 1.64.0
+        cargo install --git https://github.com/deltachat/deltachat-core-rust/ --bin deltachat-rpc-server
     - name: Test with pytest
       run: |
         pytest

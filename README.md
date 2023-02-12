@@ -6,7 +6,7 @@
 [![Supported Versions](https://img.shields.io/pypi/pyversions/deltaland.svg)](https://pypi.org/project/deltaland)
 [![License](https://img.shields.io/pypi/l/deltaland.svg)](https://pypi.org/project/deltaland)
 -->
-[![CI](https://github.com/deltachat-bot/deltaland/actions/workflows/python-ci.yml/badge.svg)](https://github.com/deltachat-bot/deltaland/actions/workflows/python-ci.yml)
+[![CI](https://github.com/deltachat-bot/deltaland/actions/workflows/ci.yml/badge.svg)](https://github.com/deltachat-bot/deltaland/actions/workflows/ci.yml)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 [![Contributors](https://img.shields.io/github/contributors/deltachat-bot/deltaland.svg)](https://github.com/deltachat-bot/deltaland/graphs/contributors)
 
