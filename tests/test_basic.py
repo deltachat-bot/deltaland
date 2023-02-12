@@ -34,14 +34,14 @@ async def test_filter(acfactory, tmp_path) -> None:
     NOT_JOINED = "you have not joined the game yet"
 
     await bot_chat.send_text("hello")
-    msg = get_next_message(user)
+    msg = await get_next_message(user)
     assert NOT_JOINED in msg.text.lower()
 
     await bot_chat.send_text("/start_confirm")
-    msg = get_next_message(user)
+    msg = await get_next_message(user)
     assert "welcome to deltaland" in msg.text.lower()
 
     await bot_chat.send_text("hello")
-    msg = get_next_message(user)
+    msg = await get_next_message(user)
     assert NOT_JOINED not in msg.text.lower()
     assert "🏅level" not in msg.text.lower()
