@@ -226,29 +226,29 @@ async def me_cmd(event: AttrDict) -> None:
 
         rankings = "📊 Ranking: /top" if player.level >= RANKS_REQ_LEVEL else ""
         atk, def_ = await player.get_equipment_stats(session)
-        await player.send_message(
-            text=f"""Goblin attack in {battle_cooldown}!
-
-            **{name}**{name_hint}
-            🏅Level: {player.level}
-            ⚔️Atk: {player.attack + atk}  🛡️Def: {player.defense + def_}
-            🔥Exp: {player.exp}/{required_exp(player.level+1)}
-            ❤️HP: {player.hp}/{player.max_hp}
-            🔋Stamina: {player.stamina}/{player.max_stamina}{stamina_cooldown}
-            💰{player.gold}
-
-            🎽Equipment {render_stats(atk, def_) or "[-]"}
-            🎒Bag: {used_inv_slots}/{player.inv_size} /inv
-
-            State:
-            {state}
-
-            🗺️ Quests: /quests
-            🏰 Castle: /castle
-            ⚔️ Battle: /battle
-            {rankings}
-            """
-        )
+        lines = [
+            f"Goblin attack in {battle_cooldown}!",
+            "",
+            f"**{name}**{name_hint}",
+            f"🏅Level: {player.level}",
+            f"⚔️Atk: {player.attack + atk}  🛡️Def: {player.defense + def_}",
+            f"🔥Exp: {player.exp}/{required_exp(player.level+1)}",
+            f"❤️HP: {player.hp}/{player.max_hp}",
+            f"🔋Stamina: {player.stamina}/{player.max_stamina}{stamina_cooldown}",
+            f"💰{player.gold}",
+            "",
+            f"🎽Equipment {render_stats(atk, def_) or '[-]'}",
+            f"🎒Bag: {used_inv_slots}/{player.inv_size} /inv",
+            "",
+            "State:",
+            f"{state}",
+            "",
+            "🗺️ Quests: /quests",
+            "🏰 Castle: /castle",
+            "⚔️ Battle: /battle",
+            f"{rankings}",
+        ]
+        await player.send_message(text="\n".join(lines))
 
 
 @cli.on(events.NewMessage(command="/battle"))
