@@ -17,7 +17,7 @@
 To install, open your terminal and run:
 
 ```sh
-pip install deltaland
+pip install git+https://github.com/deltachat-bot/deltaland.git
 ```
 
 ### Installing deltachat-rpc-server
