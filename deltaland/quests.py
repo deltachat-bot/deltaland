@@ -35,6 +35,9 @@ class Quest:
     stamina_cost: int
     required_level: int
 
+    def __hash__(self) -> int:
+        return self.id
+
     async def command(self, event: AttrDict) -> None:
         """Command to start the quest"""
         async with async_session() as session:
