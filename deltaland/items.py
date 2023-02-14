@@ -13,6 +13,7 @@ async def init_items(session) -> None:
             name="Wooden Sword",
             description="The type of wood used in this sword makes it light yet strong, although the same could be said for a broomstick...",
             attack=1,
+            max_attack=5,
         )
     )
     await session.merge(
@@ -21,6 +22,7 @@ async def init_items(session) -> None:
             type=ItemType.SHIELD,
             name="Wooden Shield",
             description="A basic shield made of wood. To be honest, it looks a lot like the bottom of the barrels in the tavern.",
-            defense=1,
+            defense=2,
+            max_defense=3,
         )
     )

@@ -38,3 +38,20 @@ def migrate6(database: sqlite3.Connection) -> None:
     now = int(time.time())
     database.execute(f"ALTER TABLE player ADD COLUMN last_seen INTEGER DEFAULT {now}")
     database.execute("UPDATE player SET last_seen=0 WHERE id=0")
+
+
+def migrate7(database: sqlite3.Connection) -> None:
+    database.execute("ALTER TABLE player ADD COLUMN max_attack INTEGER")
+    database.execute("ALTER TABLE player ADD COLUMN max_defense INTEGER")
+    database.execute(
+        "UPDATE player SET max_attack=player.attack, max_defense=player.defense"
+    )
+
+    database.execute("ALTER TABLE baseitem ADD COLUMN max_attack INTEGER")
+    database.execute("ALTER TABLE baseitem ADD COLUMN max_defense INTEGER")
+
+    database.execute("ALTER TABLE item ADD COLUMN max_attack INTEGER")
+    database.execute("ALTER TABLE item ADD COLUMN max_defense INTEGER")
+    database.execute("UPDATE item SET max_attack=5 WHERE base_id=1")
+    database.execute("UPDATE item SET max_defense=3 WHERE base_id=2")
+    database.execute("UPDATE item SET defense=2 WHERE base_id=2")

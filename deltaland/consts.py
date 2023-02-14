@@ -1,7 +1,7 @@
 """Constants"""
 from enum import IntEnum
 
-DATABASE_VERSION = 6
+DATABASE_VERSION = 7
 WORLD_ID = 0
 
 MAX_LEVEL = 3

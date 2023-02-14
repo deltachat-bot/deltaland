@@ -68,13 +68,13 @@ def get_image(name: str) -> str:
     return os.path.join(_images_dir, f"{name}.webp")
 
 
-def render_stats(atk: int, def_: int) -> str:
+def render_stats(atk: int, max_atk: int, def_: int, max_def: int) -> str:
     stats = "".join(
         [
             e
             for e in [
-                f"{atk:+}⚔️" if atk else "",
-                f"{def_:+}🛡️" if def_ else "",
+                f"{atk}-{max_atk}⚔️" if max_atk else "",
+                f"{def_}-{max_def}🛡️" if max_def else "",
             ]
             if e
         ]

@@ -69,7 +69,9 @@ class Player(Base):
     level = Column(Integer)
     exp = Column(Integer)
     attack = Column(Integer)
+    max_attack = Column(Integer)
     defense = Column(Integer)
+    max_defense = Column(Integer)
     hp = Column(Integer)
     max_hp = Column(Integer)
     mana = Column(Integer)
@@ -138,7 +140,9 @@ class Player(Base):
         kwargs.setdefault("level", STARTING_LEVEL)
         kwargs.setdefault("exp", 0)
         kwargs.setdefault("attack", STARTING_ATTACK)
+        kwargs.setdefault("max_attack", STARTING_ATTACK)
         kwargs.setdefault("defense", STARTING_DEFENSE)
+        kwargs.setdefault("max_defense", STARTING_DEFENSE)
         kwargs.setdefault("hp", MAX_HP)
         kwargs.setdefault("max_hp", MAX_HP)
         kwargs.setdefault("stamina", MAX_STAMINA)
@@ -344,15 +348,19 @@ class Player(Base):
         )
         return False
 
-    async def get_equipment_stats(self, session: sessionmaker) -> Tuple[int, int]:
+    async def get_equipment_stats(
+        self, session: sessionmaker
+    ) -> Tuple[int, int, int, int]:
         stmt = select(Item).filter(
             Item.player_id == self.id, Item.slot != EquipmentSlot.BAG
         )
-        atk, def_ = 0, 0
+        atk, max_atk, def_, max_def = 0, 0, 0, 0
         for item in (await session.execute(stmt)).scalars():
             atk += item.attack or 0
+            max_atk += item.max_attack or 0
             def_ += item.defense or 0
-        return atk, def_
+            max_def += item.max_defense or 0
+        return atk, max_atk, def_, max_def
 
     async def notify_level_up(self) -> None:
         text = f"🎉 Congratulations! You reached level {self.level}!\n"
@@ -439,7 +447,9 @@ class BaseItem(Base):
     name = Column(String(100), nullable=False)
     description = Column(String(1000))
     attack = Column(Integer)
+    max_attack = Column(Integer)
     defense = Column(Integer)
+    max_defense = Column(Integer)
     items = relationship("Item", backref="base", cascade="all, delete, delete-orphan")
 
     @property
@@ -452,7 +462,9 @@ class BaseItem(Base):
 
     def __str__(self) -> str:
         name = self.name
-        stats = render_stats(self.attack, self.defense)
+        stats = render_stats(
+            self.attack, self.max_attack, self.defense, self.max_defense
+        )
         if stats:
             name += f" {stats}"
         return name
@@ -465,7 +477,9 @@ class Item(Base):
     slot = Column(Integer, nullable=False)
     level = Column(Integer)
     attack = Column(Integer)
+    max_attack = Column(Integer)
     defense = Column(Integer)
+    max_defense = Column(Integer)
     base: BaseItem
 
     def __init__(self, **kwargs):
@@ -485,7 +499,9 @@ class Item(Base):
 
     def __str__(self) -> str:
         name = self.name
-        stats = render_stats(self.attack, self.defense)
+        stats = render_stats(
+            self.attack, self.max_attack, self.defense, self.max_defense
+        )
         if stats:
             name += f" {stats}"
         return name

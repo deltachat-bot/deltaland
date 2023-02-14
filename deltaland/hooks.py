@@ -225,19 +225,20 @@ async def me_cmd(event: AttrDict) -> None:
         used_inv_slots = await player.used_inv_slots(session)
 
         rankings = "📊 Ranking: /top" if player.level >= RANKS_REQ_LEVEL else ""
-        atk, def_ = await player.get_equipment_stats(session)
+        atk, max_atk, def_, max_def = await player.get_equipment_stats(session)
         lines = [
             f"Goblin attack in {battle_cooldown}!",
             "",
             f"**{name}**{name_hint}",
             f"🏅Level: {player.level}",
-            f"⚔️Atk: {player.attack + atk}  🛡️Def: {player.defense + def_}",
+            f"⚔️Atk: {player.attack + atk}-{player.max_attack + max_atk}"
+            f"  🛡️Def: {player.defense + def_}-{player.max_defense + max_def}",
             f"🔥Exp: {player.exp}/{required_exp(player.level+1)}",
             f"❤️HP: {player.hp}/{player.max_hp}",
             f"🔋Stamina: {player.stamina}/{player.max_stamina}{stamina_cooldown}",
             f"💰{player.gold}",
             "",
-            f"🎽Equipment {render_stats(atk, def_) or '[-]'}",
+            f"🎽Equipment {render_stats(atk, max_atk, def_, max_def) or '[-]'}",
             f"🎒Bag: {used_inv_slots}/{player.inv_size} /inv",
             "",
             "State:",
@@ -713,6 +714,7 @@ async def inv_cmd(event: AttrDict) -> None:
         )
         if not player:
             return
+        atk, max_atk, def_, max_def = await player.get_equipment_stats(session)
 
     equipment = []
     inventory = []
@@ -722,14 +724,10 @@ async def inv_cmd(event: AttrDict) -> None:
         else:
             equipment.append(item)
     items = ""
-    atk, def_ = 0, 0
     if equipment:
         for item in equipment:
             items += f"{item} /off_{item.id:03}\n"
-            atk += item.attack or 0
-            def_ += item.defense or 0
-    stats = render_stats(atk, def_) or "[-]"
-    text = f"**🎽Equipment {stats}**\n{items}\n"
+    text = f"**🎽Equipment {render_stats(atk, max_atk, def_, max_def) or '[-]'}**\n{items}\n"
     text += f"**🎒Bag: ({len(inventory)}/{player.inv_size}):**\n"
     if inventory:
         text += "\n".join(
@@ -792,7 +790,9 @@ async def buy_cmd(event: AttrDict) -> None:
                         base_id=base.id,
                         level=level,
                         attack=base.attack,
+                        max_attack=base.max_attack,
                         defense=base.defense,
+                        max_defense=base.max_defense,
                     )
                 )
                 player.gold -= price
