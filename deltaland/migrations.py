@@ -43,6 +43,9 @@ def migrate6(database: sqlite3.Connection) -> None:
 def migrate7(database: sqlite3.Connection) -> None:
     database.execute("UPDATE player SET hp=40, max_hp=40")
 
+    # add shop_price column to BaseItem
+    database.execute("ALTER TABLE baseitem ADD COLUMN shop_price INTEGER")
+
     # add max_attack/max_defense
     database.execute("ALTER TABLE player ADD COLUMN max_attack INTEGER")
     database.execute("ALTER TABLE player ADD COLUMN max_defense INTEGER")

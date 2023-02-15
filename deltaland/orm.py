@@ -450,6 +450,7 @@ class BaseItem(Base):
     max_attack = Column(Integer)
     defense = Column(Integer)
     max_defense = Column(Integer)
+    shop_price = Column(Integer)
     items = relationship("Item", backref="base", cascade="all, delete, delete-orphan")
 
     @property

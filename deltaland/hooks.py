@@ -23,7 +23,6 @@ from .cooldown import cooldown_loop
 from .dice import play_dice
 from .experience import required_exp
 from .game import get_next_battle_cooldown, get_next_day_cooldown, init_game
-from .items import shop_items
 from .migrations import run_migrations
 from .orm import (
     BaseItem,
@@ -753,13 +752,16 @@ async def shop_cmd(event: AttrDict) -> None:
         player = await Player.from_message(event.message_snapshot, session)
         if not player or not await player.validate_resting(session):
             return
+        stmt = select(BaseItem).filter(BaseItem.shop_price > 0)
+        base_items = (await session.execute(stmt)).scalars()
 
-        text = "Welcome to our shop! We sell everything a person could ever need for adventuring.\n\n"
-        text += f"**Reset Name Spell**\nPowerful spell to make everybody forget your name\n{RESET_NAME_COST}💰\n/buy_000\n\n"
-        for item_id, price in sorted(shop_items.items()):
-            base = await fetchone(session, select(BaseItem).filter_by(id=item_id))
-            text += f"**{base}**\n{price}💰\n/buy_{base.id:03}\n\n"
-
+    text = (
+        "Welcome to our shop! We sell everything a person could ever need for adventuring.\n\n"
+        "**Reset Name Spell**\nPowerful spell to make everybody forget your name\n"
+        f"{RESET_NAME_COST}💰\n/buy_000\n\n"
+    )
+    for base in base_items:
+        text += f"**{base}**\n{base.shop_price}💰\n/buy_{base.id:03}\n\n"
     text += "\n---------\n💰To sell items: /sell"
     await player.send_message(text=text, file=get_image("shop"))
 

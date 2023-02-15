@@ -2,8 +2,6 @@
 from .consts import ItemType
 from .orm import BaseItem
 
-shop_items = {1: 3, 2: 3}
-
 
 async def init_items(session) -> None:
     await session.merge(
@@ -14,6 +12,7 @@ async def init_items(session) -> None:
             description="The type of wood used in this sword makes it light yet strong, although the same could be said for a broomstick...",
             attack=1,
             max_attack=5,
+            shop_price=3,
         )
     )
     await session.merge(
@@ -24,5 +23,6 @@ async def init_items(session) -> None:
             description="A basic shield made of wood. To be honest, it looks a lot like the bottom of the barrels in the tavern.",
             defense=2,
             max_defense=3,
+            shop_price=3,
         )
     )
