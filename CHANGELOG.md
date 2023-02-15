@@ -18,6 +18,7 @@
 - don't force goblin battle for all players, and player no longer lose gold
 - reduce starting HP to 40
 - add skill points
+- unlock player level up to 9
 
 ## v0.1.0
 
