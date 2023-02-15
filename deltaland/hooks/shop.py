@@ -6,10 +6,11 @@ from sqlalchemy.orm import selectinload
 from ..consts import RESET_NAME_COST, EquipmentSlot, Tier
 from ..orm import BaseItem, Item, Player, async_session, fetchone
 from ..util import get_image
-from . import cli
+
+hooks = events.HookCollection()
 
 
-@cli.on(events.NewMessage(command="/shop"))
+@hooks.on(events.NewMessage(command="/shop"))
 async def shop_cmd(event: AttrDict) -> None:
     """Go to the shop."""
     async with async_session() as session:
@@ -30,7 +31,7 @@ async def shop_cmd(event: AttrDict) -> None:
     await player.send_message(text=text, file=get_image("shop"))
 
 
-@cli.on(events.NewMessage(command="/buy"))
+@hooks.on(events.NewMessage(command="/buy"))
 async def buy_cmd(event: AttrDict) -> None:
     """Buy an item."""
     async with async_session() as session:
@@ -71,7 +72,7 @@ async def buy_cmd(event: AttrDict) -> None:
                 await player.send_message(text="✅ Item added to your bag - /inv")
 
 
-@cli.on(events.NewMessage(command="/sell"))
+@hooks.on(events.NewMessage(command="/sell"))
 async def sell_cmd(event: AttrDict) -> None:
     """Sell an item in the shop."""
     async with async_session() as session:

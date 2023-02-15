@@ -32,12 +32,24 @@ from ..util import (
     render_stats,
     run_in_background,
 )
+from .battle import hooks as battle_hooks
+from .inventory import hooks as inventory_hooks
+from .ranking import hooks as ranking_hooks
+from .shop import hooks as shop_hooks
+from .skills import hooks as skills_hooks
+from .tavern import hooks as tavern_hooks
 
 cli = BotCli("deltaland")
 
 
 @cli.on_init
 async def on_init(bot: Bot, _args: Namespace) -> None:
+    bot.add_hooks(battle_hooks)
+    bot.add_hooks(inventory_hooks)
+    bot.add_hooks(ranking_hooks)
+    bot.add_hooks(shop_hooks)
+    bot.add_hooks(skills_hooks)
+    bot.add_hooks(tavern_hooks)
     for quest in quests:
         bot.add_hook(quest.command, events.NewMessage(command=quest.command_name))
 

@@ -4,10 +4,11 @@ from sqlalchemy.future import select
 from sqlalchemy.orm import selectinload
 
 from ..orm import BaseSkill, Player, Skill, async_session, fetchone
-from . import cli
+
+hooks = events.HookCollection()
 
 
-@cli.on(events.NewMessage(command="/level_up"))
+@hooks.on(events.NewMessage(command="/level_up"))
 async def levelup_cmd(event: AttrDict) -> None:
     """Improve skills."""
     async with async_session() as session:
@@ -38,7 +39,7 @@ async def levelup_cmd(event: AttrDict) -> None:
     await player.send_message(text=text)
 
 
-@cli.on(events.NewMessage(command="/skills"))
+@hooks.on(events.NewMessage(command="/skills"))
 async def skills_cmd(event: AttrDict) -> None:
     """See player skills."""
     async with async_session() as session:
@@ -57,7 +58,7 @@ async def skills_cmd(event: AttrDict) -> None:
     await player.send_message(text=text)
 
 
-@cli.on(events.NewMessage(command="/learn"))
+@hooks.on(events.NewMessage(command="/learn"))
 async def learn_cmd(event: AttrDict) -> None:
     """Level up an skill."""
     async with async_session() as session:

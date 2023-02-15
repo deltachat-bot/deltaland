@@ -12,10 +12,11 @@ from ..orm import (
     SentinelRank,
     async_session,
 )
-from . import cli
+
+hooks = events.HookCollection()
 
 
-@cli.on(events.NewMessage(command="/top"))
+@hooks.on(events.NewMessage(command="/top"))
 async def top_cmd(event: AttrDict) -> None:
     """Show the list of scoreboards."""
     async with async_session() as session:
@@ -34,7 +35,7 @@ async def top_cmd(event: AttrDict) -> None:
     await player.send_message(text="\n\n".join(rankings))
 
 
-@cli.on(events.NewMessage(command="/top1"))
+@hooks.on(events.NewMessage(command="/top1"))
 async def top1_cmd(event: AttrDict) -> None:
     """Most victories in the battlefield."""
     async with async_session() as session:
@@ -70,7 +71,7 @@ async def top1_cmd(event: AttrDict) -> None:
     await player.send_message(text=text)
 
 
-@cli.on(events.NewMessage(command="/top2"))
+@hooks.on(events.NewMessage(command="/top2"))
 async def top2_cmd(event: AttrDict) -> None:
     """Top gold collectors."""
     async with async_session() as session:
@@ -103,7 +104,7 @@ async def top2_cmd(event: AttrDict) -> None:
     await player.send_message(text=text)
 
 
-@cli.on(events.NewMessage(command="/top3"))
+@hooks.on(events.NewMessage(command="/top3"))
 async def top3_cmd(event: AttrDict) -> None:
     """Most gold received from the magic cauldron."""
     async with async_session() as session:
@@ -139,7 +140,7 @@ async def top3_cmd(event: AttrDict) -> None:
     await player.send_message(text=text)
 
 
-@cli.on(events.NewMessage(command="/top4"))
+@hooks.on(events.NewMessage(command="/top4"))
 async def top4_cmd(event: AttrDict) -> None:
     """Most wins in dice this month."""
     async with async_session() as session:
@@ -176,7 +177,7 @@ async def top4_cmd(event: AttrDict) -> None:
     await player.send_message(text=text)
 
 
-@cli.on(events.NewMessage(command="/top5"))
+@hooks.on(events.NewMessage(command="/top5"))
 async def top5_cmd(event: AttrDict) -> None:
     """Most thieves stopped."""
     async with async_session() as session:

@@ -7,10 +7,11 @@ from ..dice import play_dice
 from ..game import get_next_day_cooldown
 from ..orm import CauldronCoin, Player, async_session
 from ..util import get_image
-from . import cli
+
+hooks = events.HookCollection()
 
 
-@cli.on(events.NewMessage(command="/tavern"))
+@hooks.on(events.NewMessage(command="/tavern"))
 async def tavern_cmd(event: AttrDict) -> None:
     """Go to the tavern."""
     async with async_session() as session:
@@ -37,7 +38,7 @@ async def tavern_cmd(event: AttrDict) -> None:
     await player.send_message(text="\n".join(lines), file=get_image("tavern"))
 
 
-@cli.on(events.NewMessage(command="/dice"))
+@hooks.on(events.NewMessage(command="/dice"))
 async def dice_cmd(event: AttrDict) -> None:
     """Play dice in the tavern."""
     async with async_session() as session:
@@ -53,7 +54,7 @@ async def dice_cmd(event: AttrDict) -> None:
             await play_dice(player, session)
 
 
-@cli.on(events.NewMessage(command="/cauldron"))
+@hooks.on(events.NewMessage(command="/cauldron"))
 async def cauldron_cmd(event: AttrDict) -> None:
     """Toss a coin in the magic cauldron."""
     async with async_session() as session:

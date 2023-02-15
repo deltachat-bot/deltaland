@@ -5,10 +5,11 @@ from sqlalchemy.orm import selectinload
 from ..game import get_next_battle_cooldown
 from ..orm import BattleTactic, CombatTactic, Player, async_session
 from ..util import get_image
-from . import cli
+
+hooks = events.HookCollection()
 
 
-@cli.on(events.NewMessage(command="/battle"))
+@hooks.on(events.NewMessage(command="/battle"))
 async def battle_cmd(event: AttrDict) -> None:
     """Choose battle tactics."""
     async with async_session() as session:
@@ -30,7 +31,7 @@ async def battle_cmd(event: AttrDict) -> None:
     await player.send_message(text=text)
 
 
-@cli.on(events.NewMessage(command="/hit"))
+@hooks.on(events.NewMessage(command="/hit"))
 async def hit_cmd(event: AttrDict) -> None:
     """Choose HIT as battle tactic."""
     async with async_session() as session:
@@ -49,7 +50,7 @@ async def hit_cmd(event: AttrDict) -> None:
     await player.send_message(text=text)
 
 
-@cli.on(events.NewMessage(command="/feint"))
+@hooks.on(events.NewMessage(command="/feint"))
 async def feint_cmd(event: AttrDict) -> None:
     """Choose FEINT as battle tactic."""
     async with async_session() as session:
@@ -68,7 +69,7 @@ async def feint_cmd(event: AttrDict) -> None:
     await player.send_message(text=text)
 
 
-@cli.on(events.NewMessage(command="/parry"))
+@hooks.on(events.NewMessage(command="/parry"))
 async def parry_cmd(event: AttrDict) -> None:
     """Choose PARRY as battle tactic."""
     async with async_session() as session:
@@ -87,7 +88,7 @@ async def parry_cmd(event: AttrDict) -> None:
     await player.send_message(text=text)
 
 
-@cli.on(events.NewMessage(command="/report"))
+@hooks.on(events.NewMessage(command="/report"))
 async def report_cmd(event: AttrDict) -> None:
     """Show your last results in the battlefield."""
     async with async_session() as session:

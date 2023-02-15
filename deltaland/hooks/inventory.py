@@ -6,10 +6,11 @@ from sqlalchemy.orm import selectinload
 from ..consts import EquipmentSlot
 from ..orm import Item, Player, async_session, fetchone
 from ..util import render_stats
-from . import cli
+
+hooks = events.HookCollection()
 
 
-@cli.on(events.NewMessage(command="/inv"))
+@hooks.on(events.NewMessage(command="/inv"))
 async def inv_cmd(event: AttrDict) -> None:
     """Show inventory."""
     async with async_session() as session:
@@ -45,7 +46,7 @@ async def inv_cmd(event: AttrDict) -> None:
     await player.send_message(text=text)
 
 
-@cli.on(events.NewMessage(command="/on"))
+@hooks.on(events.NewMessage(command="/on"))
 async def on_cmd(event: AttrDict) -> None:
     """Equip an item."""
     async with async_session() as session:
@@ -95,7 +96,7 @@ async def on_cmd(event: AttrDict) -> None:
                 )
 
 
-@cli.on(events.NewMessage(command="/off"))
+@hooks.on(events.NewMessage(command="/off"))
 async def off_cmd(event: AttrDict) -> None:
     """Unequip an item."""
     async with async_session() as session:
