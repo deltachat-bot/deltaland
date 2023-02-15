@@ -2,7 +2,7 @@ from argparse import Namespace
 from unittest.mock import MagicMock
 
 import pytest
-from deltabot_cli import EventType
+from deltabot_cli import EventType, const
 
 from deltaland.hooks import cli
 
@@ -17,7 +17,8 @@ async def init_cli(bot, config_dir):
 async def get_next_message(account):
     while True:
         event = await account.wait_for_event()
-        if event.type == EventType.INCOMING_MSG:
+        last_special = const.SpecialContactId.LAST_SPECIAL
+        if event.type == EventType.INCOMING_MSG and event.chat_id > last_special:
             message = account.get_message_by_id(event.msg_id)
             break
     return await message.get_snapshot()
