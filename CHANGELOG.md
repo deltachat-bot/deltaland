@@ -16,6 +16,7 @@
 - track player's last activity and don't send messages to the player after 30 days of inactivity
 - add attack and defense ranges
 - don't force goblin battle for all players, and player no longer lose gold
+- reduce starting HP to 40
 
 ## v0.1.0
 
