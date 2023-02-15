@@ -68,6 +68,7 @@ class Player(Base):
     birthday = Column(Integer)
     level = Column(Integer)
     exp = Column(Integer)
+    skill_points = Column(Integer)
     attack = Column(Integer)
     max_attack = Column(Integer)
     defense = Column(Integer)
@@ -135,9 +136,13 @@ class Player(Base):
     cooldowns = relationship(
         "Cooldown", backref="player", cascade="all, delete, delete-orphan"
     )
+    skills = relationship(
+        "Skill", backref="player", cascade="all, delete, delete-orphan"
+    )
 
     def __init__(self, **kwargs):
         kwargs.setdefault("level", STARTING_LEVEL)
+        kwargs.setdefault("skill_points", 0)
         kwargs.setdefault("exp", 0)
         kwargs.setdefault("attack", STARTING_ATTACK)
         kwargs.setdefault("max_attack", STARTING_ATTACK)
@@ -171,6 +176,7 @@ class Player(Base):
         while self.exp >= max_exp:
             exp = self.exp - max_exp
             self.level += 1
+            self.skill_points += 1
             max_exp = required_exp(self.level + 1)
             self.exp = exp
         if leveled_up:
@@ -293,6 +299,12 @@ class Player(Base):
         await self.send_message(
             text="You don't even have enough gold for a pint of grog.\nWhy don't you get a job?"
         )
+        return False
+
+    async def validate_sp(self, required_sp: int) -> bool:
+        if self.skill_points >= required_sp:
+            return True
+        await self.send_message(text="You don't have enough free skill points")
         return False
 
     async def used_inv_slots(self, session: sessionmaker) -> bool:
@@ -556,6 +568,32 @@ class CauldronCoin(Base):
 class SentinelRank(Base):
     id = Column(Integer, ForeignKey("player.id"), primary_key=True)
     stopped = Column(Integer, nullable=False)
+
+
+class BaseSkill(Base):
+    id = Column(Integer, primary_key=True)
+    name = Column(String(100), nullable=False)
+    description = Column(String(2000))
+    min_atk = Column(Integer, nullable=False)
+    max_atk = Column(Integer, nullable=False)
+    min_def = Column(Integer, nullable=False)
+    max_def = Column(Integer, nullable=False)
+    max_hp = Column(Integer, nullable=False)
+    skills = relationship("Skill", backref="base", cascade="all, delete, delete-orphan")
+
+    def __init__(self, **kwargs):
+        kwargs.setdefault("min_atk", 0)
+        kwargs.setdefault("max_atk", 0)
+        kwargs.setdefault("min_def", 0)
+        kwargs.setdefault("max_def", 0)
+        kwargs.setdefault("max_hp", 0)
+        super().__init__(**kwargs)
+
+
+class Skill(Base):
+    id = Column(Integer, ForeignKey("baseskill.id"), primary_key=True)
+    player_id = Column(Integer, ForeignKey("player.id"), primary_key=True)
+    level = Column(Integer, nullable=False)
 
 
 @asynccontextmanager

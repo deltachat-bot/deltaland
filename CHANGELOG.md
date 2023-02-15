@@ -17,6 +17,7 @@
 - add attack and defense ranges
 - don't force goblin battle for all players, and player no longer lose gold
 - reduce starting HP to 40
+- add skill points
 
 ## v0.1.0
 

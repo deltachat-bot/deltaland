@@ -7,6 +7,7 @@ from sqlalchemy.future import select
 from .consts import DATABASE_VERSION, WORLD_ID, StateEnum
 from .items import init_items
 from .orm import Cooldown, Game, Player, async_session, fetchone
+from .skills import init_skills
 from .util import human_time_duration
 
 
@@ -17,6 +18,7 @@ async def init_game() -> None:
                 session.add(Game(version=DATABASE_VERSION))
 
             await init_items(session)
+            await init_skills(session)
 
             world = await fetchone(session, select(Player).filter_by(id=WORLD_ID))
             if not world:
