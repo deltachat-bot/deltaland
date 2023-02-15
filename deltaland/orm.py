@@ -494,6 +494,7 @@ class Item(Base):
     defense = Column(Integer)
     max_defense = Column(Integer)
     base: BaseItem
+    player: Player
 
     def __init__(self, **kwargs):
         kwargs.setdefault("slot", EquipmentSlot.BAG)
@@ -530,11 +531,13 @@ class Cooldown(Base):
     id = Column(Integer, primary_key=True)
     player_id = Column(Integer, ForeignKey("player.id"), primary_key=True)
     ends_at = Column(Integer, nullable=False)
+    player: Player
 
 
 class BattleTactic(Base):
     id = Column(Integer, ForeignKey("player.id"), primary_key=True)
     tactic = Column(Integer, nullable=False)
+    player: Player
 
 
 class BattleReport(Base):
@@ -544,30 +547,36 @@ class BattleReport(Base):
     hp = Column(Integer, nullable=False)
     exp = Column(Integer, nullable=False)
     gold = Column(Integer, nullable=False)
+    player: Player
 
 
 class BattleRank(Base):
     id = Column(Integer, ForeignKey("player.id"), primary_key=True)
     victories = Column(Integer, nullable=False)
+    player: Player
 
 
 class DiceRank(Base):
     id = Column(Integer, ForeignKey("player.id"), primary_key=True)
     gold = Column(Integer, nullable=False)
+    player: Player
 
 
 class CauldronRank(Base):
     id = Column(Integer, ForeignKey("player.id"), primary_key=True)
     gold = Column(Integer, nullable=False)
+    player: Player
 
 
 class CauldronCoin(Base):
     id = Column(Integer, ForeignKey("player.id"), primary_key=True)
+    player: Player
 
 
 class SentinelRank(Base):
     id = Column(Integer, ForeignKey("player.id"), primary_key=True)
     stopped = Column(Integer, nullable=False)
+    player: Player
 
 
 class BaseSkill(Base):
@@ -594,6 +603,7 @@ class Skill(Base):
     id = Column(Integer, ForeignKey("baseskill.id"), primary_key=True)
     player_id = Column(Integer, ForeignKey("player.id"), primary_key=True)
     level = Column(Integer, nullable=False)
+    player: Player
 
 
 @asynccontextmanager
