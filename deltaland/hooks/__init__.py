@@ -10,14 +10,13 @@ from deltabot_cli import AttrDict, Bot, BotCli, EventType, const, events
 from sqlalchemy.future import select
 from sqlalchemy.orm import selectinload
 
-from ..consts import RANKS_REQ_LEVEL, STARTING_LEVEL, EquipmentSlot, StateEnum, Tier
+from ..consts import RANKS_REQ_LEVEL, STARTING_LEVEL, StateEnum
 from ..cooldown import cooldown_loop
 from ..experience import required_exp
 from ..game import get_next_battle_cooldown, init_game
 from ..migrations import run_migrations
 from ..orm import (
     Cooldown,
-    Item,
     Player,
     SentinelRank,
     async_session,
