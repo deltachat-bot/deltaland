@@ -799,9 +799,8 @@ async def buy_cmd(event: AttrDict) -> None:
                     )
                 return
 
-            price = shop_items[item_id]
-            if await player.validate_gold(price):
-                base = await fetchone(session, select(BaseItem).filter_by(id=item_id))
+            base = await fetchone(session, select(BaseItem).filter_by(id=item_id))
+            if await player.validate_gold(base.shop_price):
                 level = 1 if base.tier != Tier.NONE else None
                 session.add(
                     Item(
@@ -814,7 +813,7 @@ async def buy_cmd(event: AttrDict) -> None:
                         max_defense=base.max_defense,
                     )
                 )
-                player.gold -= price
+                player.gold -= base.shop_price
                 await player.send_message(text="✅ Item added to your bag - /inv")
 
 
