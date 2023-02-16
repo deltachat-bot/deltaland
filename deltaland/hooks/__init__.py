@@ -332,7 +332,9 @@ async def interfere_cmd(event: AttrDict) -> None:
 
                 thief_gold = -min(calculate_interfere_gold(thief.level), thief.gold)
                 thief.gold += thief_gold
-                lost_hp = -thief.reduce_hp(random.randint(50, 80))
+                lost_hp = -thief.reduce_hp(
+                    random.randint(thief.max_hp // 4, thief.max_hp // 2)
+                )
                 text = (
                     f"**{player.get_name()}** noticed you and called the town's guards."
                     " You tried to flee but received some hits before managing to escape."
