@@ -173,6 +173,10 @@ async def _process_world_battle(session) -> None:
                 player.battle_rank = BattleRank(victories=0)
             player.battle_rank.victories += 1
 
+        await player.send_message(
+            text=player.get_battle_report(), file=get_image("goblin")
+        )
+
 
 async def _process_player_cooldown(cooldown: Cooldown, session) -> None:
     stmt = (

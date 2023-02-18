@@ -16,6 +16,7 @@
 - track player's last activity and don't send messages to the player after 30 days of inactivity
 - add attack and defense ranges
 - don't force goblin battle for all players, and player no longer lose gold
+- players participating in the goblin battle get the battle report after battle ends
 - reduce starting HP to 40
 - add skill points
 - unlock player level up to 9
