@@ -58,13 +58,10 @@ async def _check_cooldows() -> None:
                 .order_by(Cooldown.ends_at)
             )
             for cooldown in (await session.execute(stmt)).scalars():
-                try:
-                    if cooldown.player_id == WORLD_ID:
-                        await _process_world_cooldown(cooldown, session)
-                    else:
-                        await _process_player_cooldown(cooldown, session)
-                except Exception as ex:
-                    logging.exception(ex)
+                if cooldown.player_id == WORLD_ID:
+                    await _process_world_cooldown(cooldown, session)
+                else:
+                    await _process_player_cooldown(cooldown, session)
 
 
 async def _process_world_cooldown(cooldown: Cooldown, session) -> None:
@@ -181,7 +178,7 @@ async def _process_player_cooldown(cooldown: Cooldown, session) -> None:
     stmt = (
         select(Player)
         .filter_by(id=cooldown.player_id)
-        .options(selectinload(Player.thief))
+        .options(selectinload(Player.thief).selectinload(Player.cooldowns))
         .options(selectinload(Player.cooldowns))
     )
     player = await fetchone(session, stmt)
