@@ -37,7 +37,7 @@ deltaland init bot@example.com PASSWORD
 Start the bot:
 
 ```sh
-deltaland
+deltaland serve
 ```
 
 Run `deltaland --help` to see all available options.
