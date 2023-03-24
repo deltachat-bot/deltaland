@@ -43,13 +43,13 @@ from .util import calculate_thieve_gold, get_image
 async def cooldown_loop() -> None:
     while True:
         try:
-            await _check_cooldows()
+            await _check_cooldowns()
         except Exception as ex:
             logging.exception(ex)
         await asyncio.sleep(1)
 
 
-async def _check_cooldows() -> None:
+async def _check_cooldowns() -> None:
     async with async_session() as session:
         async with session.begin():
             stmt = (
