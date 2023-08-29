@@ -32,7 +32,7 @@ async def tavern_cmd(event: AttrDict) -> None:
         "/cauldron",
         "",
         "Or you can sit next to the gamblers and try your luck in dice.",
-        "Entry fee: {DICE_FEE}💰",
+        f"Entry fee: {DICE_FEE}💰",
         "/dice",
     ]
     await player.send_message(text="\n".join(lines), file=get_image("tavern"))
